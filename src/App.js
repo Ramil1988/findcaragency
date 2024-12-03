@@ -1,14 +1,15 @@
 import React, { useState } from "react";
-import { OPENAI_API_KEY } from "../config.local";
+import styled from "styled-components";
 import InspectorDetails from "./components/InspectorDetails";
 import CarDetails from "./components/CarDetails";
 import TechnicalDetails from "./components/TechnicalDetails";
 import Recommendations from "./components/Recommendations";
 import FormActions from "./components/FormActions";
-import "./App.css";
+import * as pdfjsLib from "pdfjs-dist/build/pdf";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL}/pdf.worker.mjs`;
 
 function App() {
-  // State variables for all fields
   const [inspectorName, setInspectorName] = useState("");
   const [inspectionDate, setInspectionDate] = useState("");
   const [carMake, setCarMake] = useState("");
@@ -35,176 +36,295 @@ function App() {
   const [expertRecommendations, setExpertRecommendations] = useState("");
   const [estimatedCost, setEstimatedCost] = useState("");
   const [comments, setComments] = useState("");
+  const [relevantReport, setRelevantReport] = useState("");
 
-  // State for ChatGPT response and loading/error states
-  const [chatGptResponse, setChatGptResponse] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [inspectorDetailsVisible, setInspectorDetailsVisible] = useState(true);
+  const [carDetailsVisible, setCarDetailsVisible] = useState(true);
+  const [technicalDetailsVisible, setTechnicalDetailsVisible] = useState(true);
+  const [recommendationsVisible, setRecommendationsVisible] = useState(true);
 
-  // Handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const parsePdf = async (e) => {
+    const file = e.target.files[0];
+    if (file && file.type === "application/pdf") {
+      const fileReader = new FileReader();
 
-    const prompt = `You are a car inspection assistant. Based on the following diagnostic information, provide a summary:
-Inspector's Name: ${inspectorName}
-Inspection Date: ${inspectionDate}
-Car Make: ${carMake}
-Car Model: ${carModel}
-Year: ${year}
-Mileage: ${mileage}
-VIN Code: ${vinCode}
-Engine Volume: ${engineVolume}
-Color: ${color}
-Transmission Type: ${transmissionType}
-Body Type: ${bodyType}
-Second Wheel Set: ${secondWheelSet}
-Number of Keys: ${numberOfKeys}
-Registration Certificate: ${registrationCertificate}
-Paint Thickness: ${paintThickness}
-Body Condition: ${bodyCondition}
-Chassis Condition: ${chassisCondition}
-Geometry Issues: ${geometryIssues}
-Electronics Status: ${electronicsStatus}
-Interior Condition: ${interiorCondition}
-Tire Wear: ${tireWear}
-Air Conditioning Status: ${airConditioningStatus}
-Brake Condition: ${brakeCondition}
-Expert Recommendations: ${expertRecommendations}
-Estimated Cost: ${estimatedCost}
-Additional Comments: ${comments}
+      fileReader.onload = async (event) => {
+        const typedArray = new Uint8Array(event.target.result);
 
-Summary:`;
+        try {
+          const pdf = await pdfjsLib.getDocument(typedArray).promise;
+          const numPages = pdf.numPages;
+          let extractedText = "";
 
-    setLoading(true);
-    setError(null);
+          for (let i = 1; i <= numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items
+              .map((item) => item.str)
+              .join(" ");
+            extractedText += `Page ${i}:\n${pageText}\n\n`;
+          }
 
-    try {
-      const response = await fetch(
-        "https://api.openai.com/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${OPENAI_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "gpt-3.5-turbo",
-            messages: [{ role: "user", content: prompt }],
-          }),
+          setRelevantReport(extractedText);
+        } catch (error) {
+          console.error("Error parsing PDF:", error);
+          setRelevantReport("An error occurred while processing the PDF.");
         }
-      );
+      };
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      const chatGptOutput = data.choices[0].message.content.trim();
-      setChatGptResponse(chatGptOutput);
-    } catch (err) {
-      console.error("Error fetching ChatGPT response:", err);
-      setError("Failed to fetch ChatGPT response.");
-    } finally {
-      setLoading(false);
+      fileReader.readAsArrayBuffer(file);
+    } else {
+      alert("Please select a valid PDF file.");
     }
   };
 
   return (
-    <div className="App">
-      <h1>Car Inspection Report</h1>
-      <form onSubmit={handleSubmit}>
-        {/* Inspector Details Section */}
-        <InspectorDetails
-          inspectorName={inspectorName}
-          setInspectorName={setInspectorName}
-          inspectionDate={inspectionDate}
-          setInspectionDate={setInspectionDate}
-        />
+    <AppContainer>
+      <Header>Car Inspection Report</Header>
+      <Form>
+        <Section>
+          <SectionHeader>
+            <SectionTitle>Car Details</SectionTitle>
+            <CollapseButton
+              onClick={() => setCarDetailsVisible(!carDetailsVisible)}
+            >
+              {carDetailsVisible ? "Collapse" : "Expand"}
+            </CollapseButton>
+          </SectionHeader>
+          {carDetailsVisible && (
+            <CarDetails
+              carMake={carMake}
+              setCarMake={setCarMake}
+              carModel={carModel}
+              setCarModel={setCarModel}
+              year={year}
+              setYear={setYear}
+              mileage={mileage}
+              setMileage={setMileage}
+            />
+          )}
+        </Section>
 
-        {/* Car Details Section */}
-        <CarDetails
-          carMake={carMake}
-          setCarMake={setCarMake}
-          carModel={carModel}
-          setCarModel={setCarModel}
-          year={year}
-          setYear={setYear}
-          mileage={mileage}
-          setMileage={setMileage}
-          vinCode={vinCode}
-          setVinCode={setVinCode}
-          color={color}
-          setColor={setColor}
-        />
+        <Section>
+          <SectionHeader>
+            <SectionTitle>Technical Details</SectionTitle>
+            <CollapseButton
+              onClick={() =>
+                setTechnicalDetailsVisible(!technicalDetailsVisible)
+              }
+            >
+              {technicalDetailsVisible ? "Collapse" : "Expand"}
+            </CollapseButton>
+          </SectionHeader>
+          {technicalDetailsVisible && (
+            <TechnicalDetails
+              vinCode={vinCode}
+              setVinCode={setVinCode}
+              engineVolume={engineVolume}
+              setEngineVolume={setEngineVolume}
+              color={color}
+              setColor={setColor}
+              transmissionType={transmissionType}
+              setTransmissionType={setTransmissionType}
+              bodyType={bodyType}
+              setBodyType={setBodyType}
+              secondWheelSet={secondWheelSet}
+              setSecondWheelSet={setSecondWheelSet}
+              numberOfKeys={numberOfKeys}
+              setNumberOfKeys={setNumberOfKeys}
+              registrationCertificate={registrationCertificate}
+              setRegistrationCertificate={setRegistrationCertificate}
+              paintThickness={paintThickness}
+              setPaintThickness={setPaintThickness}
+              bodyCondition={bodyCondition}
+              setBodyCondition={setBodyCondition}
+              chassisCondition={chassisCondition}
+              setChassisCondition={setChassisCondition}
+              geometryIssues={geometryIssues}
+              setGeometryIssues={setGeometryIssues}
+              electronicsStatus={electronicsStatus}
+              setElectronicsStatus={setElectronicsStatus}
+              interiorCondition={interiorCondition}
+              setInteriorCondition={setInteriorCondition}
+              tireWear={tireWear}
+              setTireWear={setTireWear}
+              airConditioningStatus={airConditioningStatus}
+              setAirConditioningStatus={setAirConditioningStatus}
+              brakeCondition={brakeCondition}
+              setBrakeCondition={setBrakeCondition}
+            />
+          )}
+        </Section>
 
-        {/* Technical Details Section */}
-        <TechnicalDetails
-          engineVolume={engineVolume}
-          setEngineVolume={setEngineVolume}
-          transmissionType={transmissionType}
-          setTransmissionType={setTransmissionType}
-          bodyType={bodyType}
-          setBodyType={setBodyType}
-          secondWheelSet={secondWheelSet}
-          setSecondWheelSet={setSecondWheelSet}
-          numberOfKeys={numberOfKeys}
-          setNumberOfKeys={setNumberOfKeys}
-          registrationCertificate={registrationCertificate}
-          setRegistrationCertificate={setRegistrationCertificate}
-          paintThickness={paintThickness}
-          setPaintThickness={setPaintThickness}
-          bodyCondition={bodyCondition}
-          setBodyCondition={setBodyCondition}
-          chassisCondition={chassisCondition}
-          setChassisCondition={setChassisCondition}
-          geometryIssues={geometryIssues}
-          setGeometryIssues={setGeometryIssues}
-          electronicsStatus={electronicsStatus}
-          setElectronicsStatus={setElectronicsStatus}
-          interiorCondition={interiorCondition}
-          setInteriorCondition={setInteriorCondition}
-          tireWear={tireWear}
-          setTireWear={setTireWear}
-          airConditioningStatus={airConditioningStatus}
-          setAirConditioningStatus={setAirConditioningStatus}
-          brakeCondition={brakeCondition}
-          setBrakeCondition={setBrakeCondition}
-        />
+        <Section>
+          <SectionHeader>
+            <SectionTitle>Recommendations</SectionTitle>
+            <CollapseButton
+              onClick={() => setRecommendationsVisible(!recommendationsVisible)}
+            >
+              {recommendationsVisible ? "Collapse" : "Expand"}
+            </CollapseButton>
+          </SectionHeader>
+          {recommendationsVisible && (
+            <Recommendations
+              expertRecommendations={expertRecommendations}
+              setExpertRecommendations={setExpertRecommendations}
+              estimatedCost={estimatedCost}
+              setEstimatedCost={setEstimatedCost}
+              comments={comments}
+              setComments={setComments}
+            />
+          )}
+        </Section>
 
-        {/* Recommendations Section */}
-        <Recommendations
-          expertRecommendations={expertRecommendations}
-          setExpertRecommendations={setExpertRecommendations}
-          estimatedCost={estimatedCost}
-          setEstimatedCost={setEstimatedCost}
-          comments={comments}
-          setComments={setComments}
-        />
-
-        {/* Form Actions Section */}
-        <FormActions
-          handleSubmit={handleSubmit}
-          loading={loading}
-          error={error}
-          chatGptResponse={chatGptResponse}
-        />
-      </form>
-
-      {loading && <p>Loading ChatGPT response...</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      {chatGptResponse && (
-        <div>
-          <h2>ChatGPT Response:</h2>
-          <textarea
-            value={chatGptResponse}
-            readOnly
-            rows="6"
-            style={{ width: "100%" }}
+        <Section>
+          <SectionTitle>Report</SectionTitle>
+          <Label>
+            Attach PDF File
+            <InputForPdf onChange={parsePdf} />
+          </Label>
+          <TextareaFieldSecond
+            value={relevantReport}
+            onChange={(e) => setRelevantReport(e.target.value)}
           />
-        </div>
-      )}
-    </div>
+        </Section>
+        <Section>
+          <SectionHeader>
+            <SectionTitle>Inspector Details</SectionTitle>
+            <CollapseButton
+              onClick={() =>
+                setInspectorDetailsVisible(!inspectorDetailsVisible)
+              }
+            >
+              {inspectorDetailsVisible ? "Collapse" : "Expand"}
+            </CollapseButton>
+          </SectionHeader>
+          {inspectorDetailsVisible && (
+            <InspectorDetails
+              inspectorName={inspectorName}
+              setInspectorName={setInspectorName}
+              inspectionDate={inspectionDate}
+              setInspectionDate={setInspectionDate}
+            />
+          )}
+        </Section>
+        <FormActions
+          inspectorName={inspectorName}
+          carMake={carMake}
+          carModel={carModel}
+          year={year}
+          mileage={mileage}
+          relevantReport={relevantReport}
+        />
+      </Form>
+    </AppContainer>
   );
 }
 
 export default App;
+
+// Styled Components
+const AppContainer = styled.div`
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: "Arial", sans-serif;
+  background: #f8f9fa;
+`;
+
+const Header = styled.h1`
+  text-align: center;
+  color: #333;
+  margin-bottom: 20px;
+`;
+
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+`;
+
+const Section = styled.div`
+  background: #fff;
+  padding: 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+`;
+
+const SectionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+`;
+
+const InputForPdf = styled.input.attrs({
+  type: "file",
+  accept: ".pdf",
+})`
+  margin: 5px;
+  cursor: pointer;
+`;
+
+const Label = styled.label`
+  color: grey;
+  font-weight: bold;
+  font-size: 15px;
+  display: block;
+  margin-bottom: 10px;
+`;
+
+const SectionTitle = styled.h2`
+  font-size: 18px;
+  color: #555;
+`;
+
+const TextareaField = styled.textarea`
+  padding: 10px 15px;
+  width: 95%;
+
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 16px;
+  height: 100px;
+  resize: vertical;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+
+  &:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
+    outline: none;
+  }
+
+  &::placeholder {
+    color: #b3b3b3;
+  }
+
+  &:hover {
+    border-color: #b3b3b3;
+  }
+
+  @media (max-width: 768px) {
+    width: 90%;
+  }
+`;
+
+const TextareaFieldSecond = styled(TextareaField)`
+  height: 200px;
+`;
+
+const CollapseButton = styled.button.attrs({
+  type: "button",
+})`
+  background: none;
+  border: none;
+  color: #007bff;
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: underline;
+
+  &:hover {
+    color: #0056b3;
+  }
+`;
