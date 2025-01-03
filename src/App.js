@@ -93,6 +93,8 @@ function App() {
           </SectionHeader>
           {carDetailsVisible && (
             <CarDetails
+              vinCode={vinCode}
+              setVinCode={setVinCode}
               carMake={carMake}
               setCarMake={setCarMake}
               carModel={carModel}
@@ -101,6 +103,8 @@ function App() {
               setYear={setYear}
               mileage={mileage}
               setMileage={setMileage}
+              color={color}
+              setColor={setColor}
             />
           )}
         </Section>
