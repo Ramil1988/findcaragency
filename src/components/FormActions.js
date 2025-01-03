@@ -9,6 +9,7 @@ const FormActions = ({
   year,
   mileage,
   relevantReport,
+  onChatGptResponse,
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -17,15 +18,19 @@ const FormActions = ({
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const prompt = `You are a car inspection assistant. Based on the following diagnostic information, provide a summary and important information an assistant needs to consider while providing the report about inspection of the vehicle:
-Inspector's Name: ${inspectorName}
-Car Make: ${carMake}
-Car Model: ${carModel}
-Year: ${year}
-Mileage: ${mileage}
-Attached Report: ${relevantReport}
+    const processChatGptResponse = (responseText) => {
+      return responseText.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
+    };
 
-Summary:`;
+    const prompt = `You are a car inspection assistant. Based on the following diagnostic information, provide a summary and important information:
+    Inspector's Name: ${inspectorName}
+    Car Make: ${carMake}
+    Car Model: ${carModel}
+    Year: ${year}
+    Mileage: ${mileage}
+    Attached Report: ${relevantReport}
+
+    Summary:`;
 
     setLoading(true);
     setError(null);
@@ -51,8 +56,14 @@ Summary:`;
       }
 
       const data = await response.json();
-      const chatGptOutput = data.choices[0].message.content.trim();
+      let chatGptOutput = data.choices[0].message.content.trim();
+
+      // Process response to replace ** with <b>
+      chatGptOutput = processChatGptResponse(chatGptOutput);
+
       setChatGptResponse(chatGptOutput);
+
+      onChatGptResponse(chatGptOutput);
     } catch (err) {
       console.error("Error fetching ChatGPT response:", err);
       setError("Failed to fetch ChatGPT response.");
@@ -69,10 +80,12 @@ Summary:`;
       {loading && <LoadingMessage>Loading ChatGPT response...</LoadingMessage>}
       {error && <ErrorMessage>{error}</ErrorMessage>}
       {chatGptResponse && (
-        <ResponseContainer>
-          <ResponseTitle>ChatGPT Response:</ResponseTitle>
-          <ResponseTextarea value={chatGptResponse} readOnly rows="6" />
-        </ResponseContainer>
+        <FancyResponseContainer>
+          <ResponseTitle>Generated Response</ResponseTitle>
+          <FancyResponseContent
+            dangerouslySetInnerHTML={{ __html: chatGptResponse }}
+          />
+        </FancyResponseContainer>
       )}
     </FormActionsContainer>
   );
@@ -118,26 +131,30 @@ const ErrorMessage = styled.p`
   color: #ff4d4f;
 `;
 
-const ResponseContainer = styled.div`
+const FancyResponseContainer = styled.div`
   margin-top: 20px;
+  padding: 20px;
+  background: linear-gradient(90deg, #f0f4ff, #dbe9fa);
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 `;
 
 const ResponseTitle = styled.h2`
   font-size: 18px;
-  color: #555;
-  margin-bottom: 12px;
+  color: #333;
+  margin-bottom: 10px;
+  text-align: center;
 `;
 
-const ResponseTextarea = styled.textarea`
-  width: 100%;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  padding: 10px;
+const FancyResponseContent = styled.div`
+  white-space: pre-wrap;
+  word-wrap: break-word;
   font-size: 14px;
-  resize: none;
-
-  &:focus {
-    border-color: #007bff;
-    outline: none;
-  }
+  color: #444;
+  background: #ffffff;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  line-height: 1.5;
 `;

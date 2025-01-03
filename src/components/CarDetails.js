@@ -82,7 +82,6 @@ const CarDetails = ({
           value={carMake}
           onChange={(e) => setCarMake(e.target.value)}
           placeholder="Enter car make"
-          required
         />
       </InputWrapper>
       <InputWrapper>
@@ -110,7 +109,6 @@ const CarDetails = ({
           value={mileage}
           onChange={(e) => setMileage(e.target.value)}
           placeholder="Enter mileage"
-          required
         />
       </InputWrapper>
       <InputWrapper>

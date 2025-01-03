@@ -7,6 +7,9 @@ import Recommendations from "./components/Recommendations";
 import FormActions from "./components/FormActions";
 import * as pdfjsLib from "pdfjs-dist/build/pdf";
 
+import pdfMake from "pdfmake/build/pdfmake";
+import pdfFonts from "pdfmake/build/vfs_fonts";
+
 pdfjsLib.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL}/pdf.worker.mjs`;
 
 function App() {
@@ -42,6 +45,7 @@ function App() {
   const [carDetailsVisible, setCarDetailsVisible] = useState(true);
   const [technicalDetailsVisible, setTechnicalDetailsVisible] = useState(true);
   const [recommendationsVisible, setRecommendationsVisible] = useState(true);
+  const [chatGptResponse, setChatGptResponse] = useState("");
 
   const parsePdf = async (e) => {
     const file = e.target.files[0];
@@ -78,8 +82,98 @@ function App() {
     }
   };
 
+  const processChatGptResponse = (responseText) => {
+    const lines = responseText.split("\n").flatMap((line) => {
+      const parts = line.split(/(<b>.*?<\/b>|^\d+\.\s.*?:)/g); // Split by bold sections or numbered sections
+      return parts.flatMap((part) => {
+        if (part.startsWith("<b>") && part.endsWith("</b>")) {
+          // Bold sections wrapped in <b>
+          return [
+            { text: "\n", margin: [0, 10, 0, 0] }, // Add extra space above
+            { text: part.slice(3, -4), bold: true }, // Extract bold text
+          ];
+        }
+        if (/^\d+\.\s.*?:/.test(part)) {
+          // Numbered sections
+          return [
+            { text: "\n", margin: [0, 10, 0, 0] }, // Add extra space above
+            { text: part.trim(), bold: true },
+          ];
+        }
+        return { text: part.trim() }; // Regular text
+      });
+    });
+    return lines;
+  };
+
+  const generatePdf = () => {
+    const chatGptResponseUpdated = processChatGptResponse(chatGptResponse);
+
+    const docDefinition = {
+      content: [
+        { text: "Car Inspection Report", style: "header" },
+        { text: `Inspector Name: ${inspectorName}`, style: "subheader" },
+        { text: `Inspection Date: ${inspectionDate}`, style: "subheader" },
+        { text: "\nCar Details", style: "section" },
+        { text: `Make: ${carMake}` },
+        { text: `Model: ${carModel}` },
+        { text: `Year: ${year}` },
+        { text: `Mileage: ${mileage}` },
+        { text: `VIN Code: ${vinCode}` },
+        { text: "\nTechnical Details", style: "section" },
+        { text: `Engine Volume: ${engineVolume}` },
+        { text: `Color: ${color}` },
+        { text: `Transmission Type: ${transmissionType}` },
+        { text: `Body Type: ${bodyType}` },
+        { text: "\nRecommendations", style: "section" },
+        { text: `Expert Recommendations: ${expertRecommendations}` },
+        { text: `Estimated Cost: ${estimatedCost}` },
+        { text: "\nComments", style: "section" },
+        { text: `${comments}` },
+        { text: "\nGenerated AI Response", style: "section" },
+        {
+          text: chatGptResponseUpdated || "No response generated.",
+          style: "response",
+        },
+      ],
+      styles: {
+        header: {
+          fontSize: 18,
+          bold: true,
+          alignment: "center",
+          margin: [0, 0, 0, 10],
+        },
+        subheader: {
+          fontSize: 14,
+          bold: true,
+          margin: [0, 5, 0, 5],
+        },
+        section: {
+          fontSize: 16,
+          bold: true,
+          margin: [0, 10, 0, 5],
+        },
+        response: {
+          fontSize: 12,
+          margin: [0, 5, 0, 5],
+          preserveLeadingSpaces: true,
+        },
+      },
+      defaultStyle: {
+        font: "Roboto",
+      },
+    };
+
+    pdfMake.createPdf(docDefinition).download("Car_Inspection_Report.pdf");
+  };
+
   return (
     <AppContainer>
+      <DownloadButtonContainer>
+        <DownloadButton onClick={generatePdf}>
+          <span>📥</span> Download Report
+        </DownloadButton>
+      </DownloadButtonContainer>
       <Header>Car Inspection Report</Header>
       <Form>
         <Section>
@@ -219,6 +313,7 @@ function App() {
           year={year}
           mileage={mileage}
           relevantReport={relevantReport}
+          onChatGptResponse={setChatGptResponse}
         />
       </Form>
     </AppContainer>
@@ -316,6 +411,44 @@ const TextareaField = styled.textarea`
 
 const TextareaFieldSecond = styled(TextareaField)`
   height: 200px;
+`;
+
+const DownloadButtonContainer = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+`;
+
+const DownloadButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(90deg, #3498db, #8e44ad);
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  border: none;
+  border-radius: 25px;
+  padding: 10px 20px;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+  &:hover {
+    background: linear-gradient(90deg, #8e44ad, #3498db);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  span {
+    font-size: 20px;
+  }
 `;
 
 const CollapseButton = styled.button.attrs({
