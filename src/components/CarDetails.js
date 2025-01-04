@@ -47,11 +47,12 @@ const CarDetails = ({
       }, {});
 
       setVinResponse(vehicleData);
+      console.log("VIN Lookup Response: ", vehicleData);
 
       // Update car details
       setCarMake(vehicleData.Make || "");
       setCarModel(vehicleData.Model || "");
-      setYear(vehicleData.ModelYear || "");
+      setYear(vehicleData["Model Year"] || "");
     } catch (err) {
       console.error("VIN Lookup Error: ", err);
       setError("Failed to fetch VIN details.");
