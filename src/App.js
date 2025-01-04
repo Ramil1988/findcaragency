@@ -6,8 +6,7 @@ import TechnicalDetails from "./components/TechnicalDetails";
 import Recommendations from "./components/Recommendations";
 import FormActions from "./components/FormActions";
 import * as pdfjsLib from "pdfjs-dist/build/pdf";
-
-import pdfMake from "pdfmake/build/pdfmake";
+import { jsPDF } from "jspdf";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL}/pdf.worker.mjs`;
 
@@ -82,88 +81,114 @@ function App() {
   };
 
   const processChatGptResponse = (responseText) => {
-    const lines = responseText.split("\n").flatMap((line) => {
-      const parts = line.split(/(<b>.*?<\/b>|^\d+\.\s.*?:)/g); // Split by bold sections or numbered sections
-      return parts.flatMap((part) => {
-        if (part.startsWith("<b>") && part.endsWith("</b>")) {
-          // Bold sections wrapped in <b>
-          return [
-            { text: "\n", margin: [0, 10, 0, 0] }, // Add extra space above
-            { text: part.slice(3, -4), bold: true }, // Extract bold text
-          ];
-        }
-        if (/^\d+\.\s.*?:/.test(part)) {
-          // Numbered sections
-          return [
-            { text: "\n", margin: [0, 10, 0, 0] }, // Add extra space above
-            { text: part.trim(), bold: true },
-          ];
-        }
-        return { text: part.trim() }; // Regular text
-      });
+    // Strip HTML tags and format bold text properly for the PDF
+    const strippedText = responseText.replace(/<\/?b>/g, ""); // Remove <b> tags
+    const lines = strippedText.split("\n");
+
+    return lines.map((line) => {
+      if (line.trim().startsWith("-")) {
+        // Handle bullet points
+        return { text: line.trim(), bold: false };
+      } else if (line.trim().endsWith(":")) {
+        // Handle bold headings (lines ending with ":")
+        return { text: line.trim(), bold: true };
+      } else {
+        return { text: line.trim(), bold: false }; // Regular text
+      }
     });
-    return lines;
   };
 
   const generatePdf = () => {
-    const chatGptResponseUpdated = processChatGptResponse(chatGptResponse);
+    const doc = new jsPDF();
 
-    const docDefinition = {
-      content: [
-        { text: "Car Inspection Report", style: "header" },
-        { text: `Inspector Name: ${inspectorName}`, style: "subheader" },
-        { text: `Inspection Date: ${inspectionDate}`, style: "subheader" },
-        { text: "\nCar Details", style: "section" },
-        { text: `Make: ${carMake}` },
-        { text: `Model: ${carModel}` },
-        { text: `Year: ${year}` },
-        { text: `Mileage: ${mileage}` },
-        { text: `VIN Code: ${vinCode}` },
-        { text: "\nTechnical Details", style: "section" },
-        { text: `Engine Volume: ${engineVolume}` },
-        { text: `Color: ${color}` },
-        { text: `Transmission Type: ${transmissionType}` },
-        { text: `Body Type: ${bodyType}` },
-        { text: "\nRecommendations", style: "section" },
-        { text: `Expert Recommendations: ${expertRecommendations}` },
-        { text: `Estimated Cost: ${estimatedCost}` },
-        { text: "\nComments", style: "section" },
-        { text: `${comments}` },
-        { text: "\nGenerated AI Response", style: "section" },
-        {
-          text: chatGptResponseUpdated || "No response generated.",
-          style: "response",
-        },
-      ],
-      styles: {
-        header: {
-          fontSize: 18,
-          bold: true,
-          alignment: "center",
-          margin: [0, 0, 0, 10],
-        },
-        subheader: {
-          fontSize: 14,
-          bold: true,
-          margin: [0, 5, 0, 5],
-        },
-        section: {
-          fontSize: 16,
-          bold: true,
-          margin: [0, 10, 0, 5],
-        },
-        response: {
-          fontSize: 12,
-          margin: [0, 5, 0, 5],
-          preserveLeadingSpaces: true,
-        },
-      },
-      defaultStyle: {
-        font: "Roboto",
-      },
+    // Set initial Y position and line height
+    let y = 20;
+    const lineHeight = 10;
+    const margin = 10; // Left margin
+    const pageWidth = 210; // A4 page width in mm
+    const usableWidth = pageWidth - margin * 2; // Adjusted width for margins
+
+    // Helper function to add text with bold styling
+    const addText = (text, isBold = false) => {
+      doc.setFont("helvetica", isBold ? "bold" : "normal");
+      const lines = doc.splitTextToSize(text, usableWidth); // Wrap text to fit within margins
+
+      lines.forEach((line) => {
+        if (y + lineHeight > 280) {
+          doc.addPage();
+          y = 20; // Reset Y for new page
+        }
+        doc.text(line, margin, y);
+        y += lineHeight;
+      });
     };
 
-    pdfMake.createPdf(docDefinition).download("Car_Inspection_Report.pdf");
+    // Add extra space above sections
+    const addSpace = (space = 10) => {
+      y += space;
+    };
+
+    // Header
+    doc.setFontSize(18);
+    addText("Car Inspection Report", true);
+
+    // Subheaders and details
+    doc.setFontSize(14);
+    addText(`Inspector Name: ${inspectorName || "[Not Provided]"}`, true);
+    addText(`Inspection Date: ${inspectionDate || "[Not Provided]"}`, true);
+
+    // Add space and Car Details Section
+    addSpace(15);
+    doc.setFontSize(16);
+    addText("Car Details", true);
+    doc.setFontSize(12);
+    addText(`Make: ${carMake || "[Not Provided]"}`);
+    addText(`Model: ${carModel || "[Not Provided]"}`);
+    addText(`Year: ${year || "[Not Provided]"}`);
+    addText(`Mileage: ${mileage || "[Not Provided]"}`);
+    addText(`VIN Code: ${vinCode || "[Not Provided]"}`);
+
+    // Add space and Technical Details Section
+    addSpace(15);
+    doc.setFontSize(16);
+    addText("Technical Details", true);
+    doc.setFontSize(12);
+    addText(`Engine Volume: ${engineVolume || "[Not Provided]"}`);
+    addText(`Color: ${color || "[Not Provided]"}`);
+    addText(`Transmission Type: ${transmissionType || "[Not Provided]"}`);
+    addText(`Body Type: ${bodyType || "[Not Provided]"}`);
+
+    // Add space and Recommendations Section
+    addSpace(15);
+    doc.setFontSize(16);
+    addText("Recommendations", true);
+    doc.setFontSize(12);
+    addText(
+      `Expert Recommendations: ${expertRecommendations || "[Not Provided]"}`
+    );
+    addText(`Estimated Cost: ${estimatedCost || "[Not Provided]"}`);
+
+    // Add space and Comments Section
+    addSpace(15);
+    doc.setFontSize(16);
+    addText("Comments", true);
+    doc.setFontSize(12);
+    addText(`${comments || "[Not Provided]"}`);
+
+    // Add space and Generated AI Response Section
+    addSpace(15);
+    doc.setFontSize(16);
+    addText("Generated AI Response", true);
+    doc.setFontSize(12);
+
+    // Process AI response with bold styling
+    const processedResponse = processChatGptResponse(chatGptResponse);
+    processedResponse.forEach(({ text, bold }) => {
+      addText(text, bold);
+    });
+
+    // Save the PDF
+    doc.save("Car_Inspection_Report.pdf");
   };
 
   return (
