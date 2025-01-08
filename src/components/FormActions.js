@@ -10,6 +10,7 @@ const FormActions = ({
   mileage,
   relevantReport,
   onChatGptResponse,
+  vinResponse,
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -22,12 +23,13 @@ const FormActions = ({
       return responseText.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
     };
 
-    const prompt = `You are a car inspection assistant. Based on the following diagnostic information, provide a summary and important information:
+    const prompt = `You are a car inspection assistant. Based on the following diagnostic information, provide a summary and important information. Summary should be concise and informative and help the customer to make a right choice of buying or not this vehicle.:
     Inspector's Name: ${inspectorName}
     Car Make: ${carMake}
     Car Model: ${carModel}
     Year: ${year}
     Mileage: ${mileage}
+    Vinresponse: ${JSON.stringify(vinResponse)}
     Attached Report: ${relevantReport}
 
     Summary:`;

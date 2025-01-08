@@ -45,6 +45,8 @@ function App() {
   const [recommendationsVisible, setRecommendationsVisible] = useState(true);
   const [chatGptResponse, setChatGptResponse] = useState("");
 
+  const [vinResponse, setVinResponse] = useState(null);
+
   const parsePdf = async (e) => {
     const file = e.target.files[0];
     if (file && file.type === "application/pdf") {
@@ -223,6 +225,8 @@ function App() {
               setMileage={setMileage}
               color={color}
               setColor={setColor}
+              vinResponse={vinResponse}
+              setVinResponse={setVinResponse}
             />
           )}
         </Section>
@@ -338,6 +342,7 @@ function App() {
           mileage={mileage}
           relevantReport={relevantReport}
           onChatGptResponse={setChatGptResponse}
+          vinResponse={vinResponse}
         />
       </Form>
     </AppContainer>

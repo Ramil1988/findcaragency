@@ -14,10 +14,11 @@ const CarDetails = ({
   setMileage,
   color,
   setColor,
+  vinResponse,
+  setVinResponse,
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [vinResponse, setVinResponse] = useState(null);
 
   const handleVinLookup = async () => {
     if (!vinCode) {
@@ -31,30 +32,25 @@ const CarDetails = ({
 
     try {
       const response = await fetch(
-        `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinExtended/${vinCode}?format=json`
+        `https://specifications.vinaudit.com/v3/specifications?key=F73GXOZHI5V84VR&format=json&include=attributes,equipment,colors,recalls,warranties,photos&vin=${vinCode}`
       );
 
       if (!response.ok) {
-        throw new Error(`Error: ${response.statusText}`);
+        throw new Error(`API error: ${response.statusText}`);
       }
 
-      const result = await response.json();
+      const data = await response.json();
+      setVinResponse(data);
 
-      // Parse the API response to update state
-      const vehicleData = result.Results.reduce((acc, item) => {
-        acc[item.Variable] = item.Value;
-        return acc;
-      }, {});
-
-      setVinResponse(vehicleData);
-      console.log("VIN Lookup Response: ", vehicleData);
-
-      // Update car details
-      setCarMake(vehicleData.Make || "");
-      setCarModel(vehicleData.Model || "");
-      setYear(vehicleData["Model Year"] || "");
+      // Extract and set car details from the response
+      const attributes = data.attributes;
+      setCarMake(attributes.make);
+      setCarModel(attributes.model);
+      setYear(attributes.year);
+      setMileage(attributes.mileage);
+      setColor(attributes.color);
     } catch (err) {
-      console.error("VIN Lookup Error: ", err);
+      console.error("Error fetching VIN details:", err);
       setError("Failed to fetch VIN details.");
     } finally {
       setLoading(false);
@@ -62,73 +58,75 @@ const CarDetails = ({
   };
 
   return (
-    <CarDetailsContainer>
-      <InputWrapper>
-        <label>Search VIN Number:</label>
-        <input
-          type="text"
-          value={vinCode}
-          onChange={(e) => setVinCode(e.target.value)}
-          placeholder="Enter VIN code"
-        />
-        <Button onClick={handleVinLookup} disabled={loading}>
-          {loading ? "Searching..." : "Search"}
-        </Button>
-        {error && <ErrorMessage>{error}</ErrorMessage>}
-      </InputWrapper>
-      <InputWrapper>
-        <label>Car Make:</label>
-        <input
-          type="text"
-          value={carMake}
-          onChange={(e) => setCarMake(e.target.value)}
-          placeholder="Enter car make"
-        />
-      </InputWrapper>
-      <InputWrapper>
-        <label>Car Model:</label>
-        <input
-          type="text"
-          value={carModel}
-          onChange={(e) => setCarModel(e.target.value)}
-          placeholder="Enter car model"
-        />
-      </InputWrapper>
-      <InputWrapper>
-        <label>Year:</label>
-        <input
-          type="number"
-          value={year}
-          onChange={(e) => setYear(e.target.value)}
-          placeholder="Enter year"
-        />
-      </InputWrapper>
-      <InputWrapper>
-        <label>Mileage:</label>
-        <input
-          type="number"
-          value={mileage}
-          onChange={(e) => setMileage(e.target.value)}
-          placeholder="Enter mileage"
-        />
-      </InputWrapper>
-      <InputWrapper>
-        <label>Color:</label>
-        <input
-          type="text"
-          value={color}
-          onChange={(e) => setColor(e.target.value)}
-          placeholder="Enter car color"
-        />
-      </InputWrapper>
+    <div>
+      <CarDetailsContainer>
+        <InputWrapper>
+          <label>Search VIN Number:</label>
+          <input
+            type="text"
+            value={vinCode}
+            onChange={(e) => setVinCode(e.target.value)}
+            placeholder="Enter VIN code"
+          />
+          <Button onClick={handleVinLookup} disabled={loading}>
+            {loading ? "Searching..." : "Search"}
+          </Button>
+          {error && <ErrorMessage>{error}</ErrorMessage>}
+        </InputWrapper>
+        <InputWrapper>
+          <label>Car Make:</label>
+          <input
+            type="text"
+            value={carMake}
+            onChange={(e) => setCarMake(e.target.value)}
+            placeholder="Enter car make"
+          />
+        </InputWrapper>
+        <InputWrapper>
+          <label>Car Model:</label>
+          <input
+            type="text"
+            value={carModel}
+            onChange={(e) => setCarModel(e.target.value)}
+            placeholder="Enter car model"
+          />
+        </InputWrapper>
+        <InputWrapper>
+          <label>Year:</label>
+          <input
+            type="number"
+            value={year}
+            onChange={(e) => setYear(e.target.value)}
+            placeholder="Enter year"
+          />
+        </InputWrapper>
+        <InputWrapper>
+          <label>Mileage:</label>
+          <input
+            type="number"
+            value={mileage}
+            onChange={(e) => setMileage(e.target.value)}
+            placeholder="Enter mileage"
+          />
+        </InputWrapper>
+        <InputWrapper>
+          <label>Color:</label>
+          <input
+            type="text"
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
+            placeholder="Enter car color"
+          />
+        </InputWrapper>
 
-      {vinResponse && (
-        <ResponseContainer>
-          <h3>VIN Lookup Response:</h3>
-          <pre>{JSON.stringify(vinResponse, null, 2)}</pre>
-        </ResponseContainer>
-      )}
-    </CarDetailsContainer>
+        {vinResponse && (
+          <ResponseContainer>
+            <h3>VIN Lookup Response:</h3>
+            <pre>{JSON.stringify(vinResponse, null, 2)}</pre>
+          </ResponseContainer>
+        )}
+      </CarDetailsContainer>
+    </div>
   );
 };
 
