@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import styled from "styled-components";
 
-const SafetyInspectionChecklist = () => {
+const SafetyInspectionChecklist = ({ onChecklistChange }) => {
   const [inspectionItems, setInspectionItems] = useState({
     brakes: false,
     steering: false,
@@ -16,7 +16,11 @@ const SafetyInspectionChecklist = () => {
   });
 
   const toggleItem = (key) => {
-    setInspectionItems((prev) => ({ ...prev, [key]: !prev[key] }));
+    setInspectionItems((prev) => {
+      const updatedItems = { ...prev, [key]: !prev[key] };
+      onChecklistChange(updatedItems); // Notify parent of changes
+      return updatedItems;
+    });
   };
 
   const allChecked = Object.values(inspectionItems).every((val) => val);
@@ -24,88 +28,32 @@ const SafetyInspectionChecklist = () => {
   return (
     <ChecklistContainer>
       <ChecklistSection>
-        <ChecklistItem>
-          <input
-            type="checkbox"
-            checked={inspectionItems.brakes}
-            onChange={() => toggleItem("brakes")}
-          />
-          <span>Brakes: No leaks, pads meet thickness standards.</span>
-        </ChecklistItem>
-        <ChecklistItem>
-          <input
-            type="checkbox"
-            checked={inspectionItems.steering}
-            onChange={() => toggleItem("steering")}
-          />
-          <span>Steering: No excessive play, power steering working.</span>
-        </ChecklistItem>
-        <ChecklistItem>
-          <input
-            type="checkbox"
-            checked={inspectionItems.tires}
-            onChange={() => toggleItem("tires")}
-          />
-          <span>Tires: Minimum tread depth 1.6mm, no visible damage.</span>
-        </ChecklistItem>
-        <ChecklistItem>
-          <input
-            type="checkbox"
-            checked={inspectionItems.lights}
-            onChange={() => toggleItem("lights")}
-          />
-          <span>Lights: Headlights, turn signals, brake lights work.</span>
-        </ChecklistItem>
-        <ChecklistItem>
-          <input
-            type="checkbox"
-            checked={inspectionItems.windshield}
-            onChange={() => toggleItem("windshield")}
-          />
-          <span>Windshield: No cracks obstructing driver's view.</span>
-        </ChecklistItem>
-        <ChecklistItem>
-          <input
-            type="checkbox"
-            checked={inspectionItems.exhaust}
-            onChange={() => toggleItem("exhaust")}
-          />
-          <span>Exhaust: No leaks, no excessive smoke.</span>
-        </ChecklistItem>
-        <ChecklistItem>
-          <input
-            type="checkbox"
-            checked={inspectionItems.fuel}
-            onChange={() => toggleItem("fuel")}
-          />
-          <span>Fuel System: No visible leaks.</span>
-        </ChecklistItem>
-        <ChecklistItem>
-          <input
-            type="checkbox"
-            checked={inspectionItems.frame}
-            onChange={() => toggleItem("frame")}
-          />
-          <span>Frame: No excessive rust or structural damage.</span>
-        </ChecklistItem>
-        <ChecklistItem>
-          <input
-            type="checkbox"
-            checked={inspectionItems.seatbelts}
-            onChange={() => toggleItem("seatbelts")}
-          />
-          <span>Seatbelts: Must retract and latch properly.</span>
-        </ChecklistItem>
-        <ChecklistItem>
-          <input
-            type="checkbox"
-            checked={inspectionItems.battery}
-            onChange={() => toggleItem("battery")}
-          />
-          <span>Battery: Secure, no corrosion on terminals.</span>
-        </ChecklistItem>
+        {Object.entries(inspectionItems).map(([key, value]) => (
+          <ChecklistItem key={key}>
+            <input
+              type="checkbox"
+              checked={value}
+              onChange={() => toggleItem(key)}
+            />
+            <span>{key.charAt(0).toUpperCase() + key.slice(1)}:</span>
+            <span style={{ marginLeft: "10px" }}>
+              {key === "brakes" && "No leaks, pads meet thickness standards."}
+              {key === "steering" &&
+                "No excessive play, power steering working."}
+              {key === "tires" &&
+                "Minimum tread depth 1.6mm, no visible damage."}
+              {key === "lights" &&
+                "Headlights, turn signals, brake lights work."}
+              {key === "windshield" && "No cracks obstructing driver's view."}
+              {key === "exhaust" && "No leaks, no excessive smoke."}
+              {key === "fuel" && "No visible leaks."}
+              {key === "frame" && "No excessive rust or structural damage."}
+              {key === "seatbelts" && "Must retract and latch properly."}
+              {key === "battery" && "Secure, no corrosion on terminals."}
+            </span>
+          </ChecklistItem>
+        ))}
       </ChecklistSection>
-
       <InspectionSummary allChecked={allChecked}>
         {allChecked
           ? "✅ Vehicle Passed Inspection"
@@ -132,8 +80,21 @@ const ChecklistSection = styled.div`
 const ChecklistItem = styled.label`
   display: flex;
   align-items: center;
-  gap: 10px;
   font-size: 16px;
+
+  span:first-of-type {
+    width: 120px; /* Adjust width as needed for alignment */
+    display: inline-block;
+    font-weight: bold;
+  }
+
+  span:last-of-type {
+    flex-grow: 1;
+  }
+
+  input {
+    margin-right: 10px;
+  }
 `;
 
 const InspectionSummary = styled.div`

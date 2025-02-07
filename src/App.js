@@ -28,6 +28,18 @@ function App() {
   const [electronicsStatus, setElectronicsStatus] = useState("");
   const [interiorCondition, setInteriorCondition] = useState("");
   const [airConditioningStatus, setAirConditioningStatus] = useState("");
+  const [inspectionItems, setInspectionItems] = useState({
+    brakes: false,
+    steering: false,
+    tires: false,
+    lights: false,
+    windshield: false,
+    exhaust: false,
+    fuel: false,
+    frame: false,
+    seatbelts: false,
+    battery: false,
+  });
   const [expertRecommendations, setExpertRecommendations] = useState("");
   const [estimatedCost, setEstimatedCost] = useState("");
   const [comments, setComments] = useState("");
@@ -80,6 +92,10 @@ function App() {
     }
   };
 
+  const handleChecklistChange = (updatedItems) => {
+    setInspectionItems(updatedItems);
+  };
+
   const processChatGptResponse = (responseText) => {
     // Strip HTML tags and format bold text properly for the PDF
     const strippedText = responseText.replace(/<\/?b>/g, ""); // Remove <b> tags
@@ -99,101 +115,175 @@ function App() {
   };
 
   const generatePdf = () => {
+    console.log("Inspection Items:", inspectionItems);
     const doc = new jsPDF();
 
-    // Set initial Y position and line height
-    let y = 20;
+    // Embed a font that supports emojis (Noto Color Emoji or equivalent)
+    const notoEmojiFont = "data:font/ttf;base64,<BASE64_ENCODED_FONT>"; // Replace with actual Base64-encoded font
+    doc.addFileToVFS("NotoEmoji-Regular.ttf", notoEmojiFont);
+    doc.addFont("NotoEmoji-Regular.ttf", "NotoEmoji", "normal");
+    doc.setFont("NotoEmoji");
+
+    // Set initial positions and constants
+    let y = 20; // Initial Y position, leaving space for the logo
     const lineHeight = 10;
     const margin = 10; // Left margin
     const pageWidth = 210; // A4 page width in mm
-    const usableWidth = pageWidth - margin * 2; // Adjusted width for margins
+    const usableWidth = pageWidth - margin * 2;
 
     // Helper function to add text with bold styling
     const addText = (text, isBold = false) => {
       doc.setFont("helvetica", isBold ? "bold" : "normal");
-      const lines = doc.splitTextToSize(text, usableWidth); // Wrap text to fit within margins
-
+      const lines = doc.splitTextToSize(text, usableWidth);
       lines.forEach((line) => {
         if (y + lineHeight > 280) {
           doc.addPage();
-          y = 20; // Reset Y for new page
+          y = 20;
         }
         doc.text(line, margin, y);
         y += lineHeight;
       });
     };
 
-    // Add extra space above sections
+    // Add space above sections
     const addSpace = (space = 10) => {
       y += space;
     };
 
-    // Header
-    doc.setFontSize(18);
-    addText("Car Inspection Report", true);
+    // Add logo to the PDF
+    const img = new Image();
+    img.src = "/FindCarAgencyLogo.png"; // Path to the logo image
+    img.onload = () => {
+      // Draw logo
+      doc.addImage(img, "PNG", 10, 10, 50, 50); // Logo size: width 50mm, height 50mm
 
-    // Subheaders and details
-    doc.setFontSize(14);
-    addText(`Inspector Name: ${inspectorName}`, true);
-    addText(`Inspection Date: ${inspectionDate}`, true);
+      // Draw header details
+      const headerStartX = pageWidth - 40;
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.text("Car Inspection Report", headerStartX, 20, { align: "right" });
 
-    // Add space and Car Details Section
-    addSpace(15);
-    doc.setFontSize(16);
-    addText("Car Details", true);
-    doc.setFontSize(12);
-    addText(`Make: ${carMake}`);
-    addText(`Model: ${carModel}`);
-    addText(`Year: ${year}`);
-    addText(`Mileage: ${mileage}`);
-    addText(`VIN Code: ${vinCode}`);
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Inspector Name: ${inspectorName}`, headerStartX, 30, {
+        align: "right",
+      });
+      doc.text(`Inspection Date: ${inspectionDate}`, headerStartX, 40, {
+        align: "right",
+      });
 
-    // Add space and Technical Details Section
-    addSpace(15);
-    doc.setFontSize(16);
-    addText("Technical Details", true);
-    doc.setFontSize(12);
-    addText(`Engine Volume: ${engineVolume}`);
-    addText(`Body Type: ${bodyType}`);
+      // Move the Y position below the logo and header
+      y = 50;
 
-    // Add space and Recommendations Section
-    addSpace(15);
-    doc.setFontSize(16);
-    addText("Recommendations", true);
-    doc.setFontSize(12);
-    addText(`Expert Recommendations: ${expertRecommendations}`);
-    addText(`Estimated Cost: ${estimatedCost}`);
+      // Add Car Details section
+      addSpace(15);
+      doc.setFontSize(16);
+      addText("Car Details", true);
+      doc.setFontSize(12);
+      addText(`Make: ${carMake}`);
+      addText(`Model: ${carModel}`);
+      addText(`Year: ${year}`);
+      addText(`Mileage: ${mileage}`);
+      addText(`VIN Code: ${vinCode}`);
 
-    // Add space and Comments Section
-    addSpace(15);
-    doc.setFontSize(16);
-    addText("Comments", true);
-    doc.setFontSize(12);
-    addText(`${comments}`);
+      // Add Technical Details section
+      addSpace(15);
+      doc.setFontSize(16);
+      addText("Technical Details", true);
+      doc.setFontSize(12);
+      addText(`Engine Volume: ${engineVolume}`);
+      addText(`Body Type: ${bodyType}`);
 
-    // Add space and Generated AI Response Section
-    addSpace(15);
-    doc.setFontSize(16);
-    addText("Generated AI Response", true);
-    doc.setFontSize(12);
+      // Add Safety Inspection Checklist section
+      addSpace(15);
+      doc.setFontSize(16);
+      addText("Safety Inspection Checklist", true);
+      doc.setFontSize(12);
 
-    // Process AI response with bold styling
-    const processedResponse = processChatGptResponse(chatGptResponse);
-    processedResponse.forEach(({ text, bold }) => {
-      addText(text, bold);
-    });
+      Object.entries(inspectionItems).forEach(([key, value]) => {
+        const status = value ? "Passed" : "Failed";
+        const description =
+          key === "brakes"
+            ? "No leaks, pads meet thickness standards."
+            : key === "steering"
+            ? "No excessive play, power steering working."
+            : key === "tires"
+            ? "Minimum tread depth 1.6mm, no visible damage."
+            : key === "lights"
+            ? "Headlights, turn signals, brake lights work."
+            : key === "windshield"
+            ? "No cracks obstructing driver's view."
+            : key === "exhaust"
+            ? "No leaks, no excessive smoke."
+            : key === "fuel"
+            ? "No visible leaks."
+            : key === "frame"
+            ? "No excessive rust or structural damage."
+            : key === "seatbelts"
+            ? "Must retract and latch properly."
+            : key === "battery"
+            ? "Secure, no corrosion on terminals."
+            : "";
 
-    // Save the PDF
-    doc.save("Car_Inspection_Report.pdf");
+        addText(
+          `${key.charAt(0).toUpperCase() + key.slice(1)}: ${description}`
+        );
+        addText(`Status: ${status}`);
+      });
+
+      doc.setFontSize(16);
+      const allChecked = Object.values(inspectionItems).every((val) => val);
+      addText(
+        allChecked ? "Vehicle Passed Inspection" : "Inspection Incomplete",
+        true
+      );
+
+      // Add Recommendations section
+      addSpace(15);
+      doc.setFontSize(16);
+      addText("Recommendations", true);
+      doc.setFontSize(12);
+      addText(`Expert Recommendations: ${expertRecommendations}`);
+      addText(`Estimated Cost: ${estimatedCost}`);
+
+      // Add Comments section
+      addSpace(15);
+      doc.setFontSize(16);
+      addText("Comments", true);
+      doc.setFontSize(12);
+      addText(`${comments}`);
+
+      // Add Generated AI Response section
+      addSpace(15);
+      doc.setFontSize(16);
+      addText("Generated AI Response", true);
+      doc.setFontSize(12);
+
+      const processedResponse = processChatGptResponse(chatGptResponse);
+      processedResponse.forEach(({ text, bold }) => {
+        addText(text, bold);
+      });
+
+      // Save the PDF
+      doc.save("Car_Inspection_Report.pdf");
+    };
+
+    img.onerror = () => {
+      console.error("Failed to load the logo image.");
+      alert("Failed to load the logo image. Please check the path.");
+    };
   };
 
   return (
     <AppContainer>
-      <DownloadButtonContainer>
-        <DownloadButton onClick={generatePdf}>
-          <span>📥</span> Download Report
-        </DownloadButton>
-      </DownloadButtonContainer>
+      <HeaderLogoContainer>
+        <Logo src="/FindCarAgencyLogo.png" alt="FindCarAgency Logo" />
+        <DownloadButtonContainer>
+          <DownloadButton onClick={generatePdf}>
+            <span>📥</span> Download Report
+          </DownloadButton>
+        </DownloadButtonContainer>
+      </HeaderLogoContainer>
       <Header>Car Inspection Report</Header>
       <Form>
         <Section>
@@ -271,7 +361,11 @@ function App() {
               {safetyInspectionChecklistVisible ? "Collapse" : "Expand"}
             </CollapseButton>
           </SectionHeader>
-          {safetyInspectionChecklistVisible && <SafetyInspectionChecklist />}
+          {safetyInspectionChecklistVisible && (
+            <SafetyInspectionChecklist
+              onChecklistChange={handleChecklistChange}
+            />
+          )}
         </Section>
 
         <Section>
@@ -358,6 +452,17 @@ const Header = styled.h1`
   margin-bottom: 20px;
 `;
 
+const HeaderLogoContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f8f9fa;
+`;
+
+const Logo = styled.img`
+  height: 250px;
+`;
+
 const Form = styled.form`
   display: flex;
   flex-direction: column;
@@ -438,6 +543,8 @@ const DownloadButtonContainer = styled.div`
   display: flex;
   justify-content: flex-end;
   margin-bottom: 10px;
+  display: flex;
+  align-items: center;
 `;
 
 const DownloadButton = styled.button`
