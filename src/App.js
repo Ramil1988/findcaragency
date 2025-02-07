@@ -3,6 +3,7 @@ import styled from "styled-components";
 import InspectorDetails from "./components/InspectorDetails";
 import CarDetails from "./components/CarDetails";
 import TechnicalDetails from "./components/TechnicalDetails";
+import SafetyInspectionChecklist from "./components/SafetyInspectionChecklist";
 import Recommendations from "./components/Recommendations";
 import FormActions from "./components/FormActions";
 import * as pdfjsLib from "pdfjs-dist/build/pdf";
@@ -19,21 +20,14 @@ function App() {
   const [mileage, setMileage] = useState("");
   const [vinCode, setVinCode] = useState("");
   const [engineVolume, setEngineVolume] = useState("");
-  const [color, setColor] = useState("");
-  const [transmissionType, setTransmissionType] = useState("");
   const [bodyType, setBodyType] = useState("");
-  const [secondWheelSet, setSecondWheelSet] = useState("");
-  const [numberOfKeys, setNumberOfKeys] = useState("");
-  const [registrationCertificate, setRegistrationCertificate] = useState("");
   const [paintThickness, setPaintThickness] = useState("");
   const [bodyCondition, setBodyCondition] = useState("");
   const [chassisCondition, setChassisCondition] = useState("");
   const [geometryIssues, setGeometryIssues] = useState("");
   const [electronicsStatus, setElectronicsStatus] = useState("");
   const [interiorCondition, setInteriorCondition] = useState("");
-  const [tireWear, setTireWear] = useState("");
   const [airConditioningStatus, setAirConditioningStatus] = useState("");
-  const [brakeCondition, setBrakeCondition] = useState("");
   const [expertRecommendations, setExpertRecommendations] = useState("");
   const [estimatedCost, setEstimatedCost] = useState("");
   const [comments, setComments] = useState("");
@@ -43,6 +37,10 @@ function App() {
   const [carDetailsVisible, setCarDetailsVisible] = useState(true);
   const [technicalDetailsVisible, setTechnicalDetailsVisible] = useState(true);
   const [recommendationsVisible, setRecommendationsVisible] = useState(true);
+  const [
+    safetyInspectionChecklistVisible,
+    setSafetyInspectionChecklistVisible,
+  ] = useState(true);
   const [chatGptResponse, setChatGptResponse] = useState("");
 
   const [vinResponse, setVinResponse] = useState(null);
@@ -136,46 +134,42 @@ function App() {
 
     // Subheaders and details
     doc.setFontSize(14);
-    addText(`Inspector Name: ${inspectorName || "[Not Provided]"}`, true);
-    addText(`Inspection Date: ${inspectionDate || "[Not Provided]"}`, true);
+    addText(`Inspector Name: ${inspectorName}`, true);
+    addText(`Inspection Date: ${inspectionDate}`, true);
 
     // Add space and Car Details Section
     addSpace(15);
     doc.setFontSize(16);
     addText("Car Details", true);
     doc.setFontSize(12);
-    addText(`Make: ${carMake || "[Not Provided]"}`);
-    addText(`Model: ${carModel || "[Not Provided]"}`);
-    addText(`Year: ${year || "[Not Provided]"}`);
-    addText(`Mileage: ${mileage || "[Not Provided]"}`);
-    addText(`VIN Code: ${vinCode || "[Not Provided]"}`);
+    addText(`Make: ${carMake}`);
+    addText(`Model: ${carModel}`);
+    addText(`Year: ${year}`);
+    addText(`Mileage: ${mileage}`);
+    addText(`VIN Code: ${vinCode}`);
 
     // Add space and Technical Details Section
     addSpace(15);
     doc.setFontSize(16);
     addText("Technical Details", true);
     doc.setFontSize(12);
-    addText(`Engine Volume: ${engineVolume || "[Not Provided]"}`);
-    addText(`Color: ${color || "[Not Provided]"}`);
-    addText(`Transmission Type: ${transmissionType || "[Not Provided]"}`);
-    addText(`Body Type: ${bodyType || "[Not Provided]"}`);
+    addText(`Engine Volume: ${engineVolume}`);
+    addText(`Body Type: ${bodyType}`);
 
     // Add space and Recommendations Section
     addSpace(15);
     doc.setFontSize(16);
     addText("Recommendations", true);
     doc.setFontSize(12);
-    addText(
-      `Expert Recommendations: ${expertRecommendations || "[Not Provided]"}`
-    );
-    addText(`Estimated Cost: ${estimatedCost || "[Not Provided]"}`);
+    addText(`Expert Recommendations: ${expertRecommendations}`);
+    addText(`Estimated Cost: ${estimatedCost}`);
 
     // Add space and Comments Section
     addSpace(15);
     doc.setFontSize(16);
     addText("Comments", true);
     doc.setFontSize(12);
-    addText(`${comments || "[Not Provided]"}`);
+    addText(`${comments}`);
 
     // Add space and Generated AI Response Section
     addSpace(15);
@@ -223,8 +217,10 @@ function App() {
               setYear={setYear}
               mileage={mileage}
               setMileage={setMileage}
-              color={color}
-              setColor={setColor}
+              engineVolume={engineVolume}
+              setEngineVolume={setEngineVolume}
+              bodyType={bodyType}
+              setBodyType={setBodyType}
               vinResponse={vinResponse}
               setVinResponse={setVinResponse}
             />
@@ -244,22 +240,6 @@ function App() {
           </SectionHeader>
           {technicalDetailsVisible && (
             <TechnicalDetails
-              vinCode={vinCode}
-              setVinCode={setVinCode}
-              engineVolume={engineVolume}
-              setEngineVolume={setEngineVolume}
-              color={color}
-              setColor={setColor}
-              transmissionType={transmissionType}
-              setTransmissionType={setTransmissionType}
-              bodyType={bodyType}
-              setBodyType={setBodyType}
-              secondWheelSet={secondWheelSet}
-              setSecondWheelSet={setSecondWheelSet}
-              numberOfKeys={numberOfKeys}
-              setNumberOfKeys={setNumberOfKeys}
-              registrationCertificate={registrationCertificate}
-              setRegistrationCertificate={setRegistrationCertificate}
               paintThickness={paintThickness}
               setPaintThickness={setPaintThickness}
               bodyCondition={bodyCondition}
@@ -272,14 +252,26 @@ function App() {
               setElectronicsStatus={setElectronicsStatus}
               interiorCondition={interiorCondition}
               setInteriorCondition={setInteriorCondition}
-              tireWear={tireWear}
-              setTireWear={setTireWear}
               airConditioningStatus={airConditioningStatus}
               setAirConditioningStatus={setAirConditioningStatus}
-              brakeCondition={brakeCondition}
-              setBrakeCondition={setBrakeCondition}
             />
           )}
+        </Section>
+
+        <Section>
+          <SectionHeader>
+            <SectionTitle>Safety Inspection Checklist</SectionTitle>
+            <CollapseButton
+              onClick={() =>
+                setSafetyInspectionChecklistVisible(
+                  !safetyInspectionChecklistVisible
+                )
+              }
+            >
+              {safetyInspectionChecklistVisible ? "Collapse" : "Expand"}
+            </CollapseButton>
+          </SectionHeader>
+          {safetyInspectionChecklistVisible && <SafetyInspectionChecklist />}
         </Section>
 
         <Section>

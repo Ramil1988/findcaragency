@@ -2,18 +2,6 @@ import React from "react";
 import styled from "styled-components";
 
 const TechnicalDetails = ({
-  engineVolume,
-  setEngineVolume,
-  transmissionType,
-  setTransmissionType,
-  bodyType,
-  setBodyType,
-  secondWheelSet,
-  setSecondWheelSet,
-  numberOfKeys,
-  setNumberOfKeys,
-  registrationCertificate,
-  setRegistrationCertificate,
   paintThickness,
   setPaintThickness,
   bodyCondition,
@@ -24,84 +12,10 @@ const TechnicalDetails = ({
   setGeometryIssues,
   electronicsStatus,
   setElectronicsStatus,
-  tireWear,
-  setTireWear,
-  brakeCondition,
-  setBrakeCondition,
   airConditioningStatus,
   setAirConditioningStatus,
 }) => (
   <TechnicalDetailsContainer>
-    <Row>
-      <Col>
-        <InputWrapper>
-          <label>Engine Volume:</label>
-          <input
-            type="text"
-            value={engineVolume}
-            onChange={(e) => setEngineVolume(e.target.value)}
-            placeholder="Enter engine volume"
-          />
-        </InputWrapper>
-      </Col>
-      <Col>
-        <InputWrapper>
-          <label>Transmission Type:</label>
-          <input
-            type="text"
-            value={transmissionType}
-            onChange={(e) => setTransmissionType(e.target.value)}
-            placeholder="Enter transmission type"
-          />
-        </InputWrapper>
-      </Col>
-      <Col>
-        <InputWrapper>
-          <label>Body Type:</label>
-          <input
-            type="text"
-            value={bodyType}
-            onChange={(e) => setBodyType(e.target.value)}
-            placeholder="Enter body type"
-          />
-        </InputWrapper>
-      </Col>
-      <Col>
-        <InputWrapper>
-          <label>Second Wheel Set:</label>
-          <input
-            type="text"
-            value={secondWheelSet}
-            onChange={(e) => setSecondWheelSet(e.target.value)}
-            placeholder="Enter second wheel set details"
-          />
-        </InputWrapper>
-      </Col>
-    </Row>
-    <Row>
-      <Col>
-        <InputWrapper>
-          <label>Number of Keys:</label>
-          <input
-            type="number"
-            value={numberOfKeys}
-            onChange={(e) => setNumberOfKeys(e.target.value)}
-            placeholder="Enter number of keys"
-          />
-        </InputWrapper>
-      </Col>
-      <Col>
-        <InputWrapper>
-          <label>Registration Certificate:</label>
-          <input
-            type="text"
-            value={registrationCertificate}
-            onChange={(e) => setRegistrationCertificate(e.target.value)}
-            placeholder="Enter registration certificate details"
-          />
-        </InputWrapper>
-      </Col>
-    </Row>
     <InputWrapper>
       <label>Paint Thickness (in μm):</label>
       <textarea
@@ -148,24 +62,6 @@ const TechnicalDetails = ({
       />
     </InputWrapper>
     <InputWrapper>
-      <label>Tire Wear (Summer/Winter):</label>
-      <textarea
-        value={tireWear}
-        onChange={(e) => setTireWear(e.target.value)}
-        placeholder="Enter tire wear details"
-        rows="2"
-      />
-    </InputWrapper>
-    <InputWrapper>
-      <label>Brake Condition:</label>
-      <textarea
-        value={brakeCondition}
-        onChange={(e) => setBrakeCondition(e.target.value)}
-        placeholder="Enter brake condition"
-        rows="4"
-      />
-    </InputWrapper>
-    <InputWrapper>
       <label>Air Conditioning Status:</label>
       <textarea
         value={airConditioningStatus}
@@ -185,22 +81,6 @@ const TechnicalDetailsContainer = styled.div`
   flex-direction: column;
   gap: 16px;
   margin-bottom: 20px;
-`;
-
-const Row = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-`;
-
-const Col = styled.div`
-  flex: 1 1 100%;
-  max-width: 100%;
-
-  @media (min-width: 768px) {
-    flex: 1 1 48%;
-    max-width: 48%;
-  }
 `;
 
 const InputWrapper = styled.div`

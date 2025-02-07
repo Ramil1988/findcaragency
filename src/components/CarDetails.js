@@ -12,8 +12,10 @@ const CarDetails = ({
   setYear,
   mileage,
   setMileage,
-  color,
-  setColor,
+  engineVolume,
+  setEngineVolume,
+  bodyType,
+  setBodyType,
   vinResponse,
   setVinResponse,
 }) => {
@@ -32,25 +34,31 @@ const CarDetails = ({
 
     try {
       const response = await fetch(
-        `https://specifications.vinaudit.com/v3/specifications?key=F73GXOZHI5V84VR&format=json&include=attributes,equipment,colors,recalls,warranties,photos&vin=${vinCode}`
+        `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinExtended/${vinCode}?format=json`
       );
 
       if (!response.ok) {
-        throw new Error(`API error: ${response.statusText}`);
+        throw new Error(`Error: ${response.statusText}`);
       }
 
-      const data = await response.json();
-      setVinResponse(data);
+      const result = await response.json();
 
-      // Extract and set car details from the response
-      const attributes = data.attributes;
-      setCarMake(attributes.make);
-      setCarModel(attributes.model);
-      setYear(attributes.year);
-      setMileage(attributes.mileage);
-      setColor(attributes.color);
+      // Parse the API response to update state
+      const vehicleData = result.Results.reduce((acc, item) => {
+        acc[item.Variable] = item.Value;
+        return acc;
+      }, {});
+
+      setVinResponse(vehicleData);
+
+      // Update car details
+      setCarMake(vehicleData.Make || "");
+      setCarModel(vehicleData.Model || "");
+      setYear(vehicleData["Model Year"] || "");
+      setEngineVolume(vehicleData["Displacement (L)"] || "");
+      setBodyType(vehicleData["Body Class"] || "");
     } catch (err) {
-      console.error("Error fetching VIN details:", err);
+      console.error("VIN Lookup Error: ", err);
       setError("Failed to fetch VIN details.");
     } finally {
       setLoading(false);
@@ -101,6 +109,24 @@ const CarDetails = ({
           />
         </InputWrapper>
         <InputWrapper>
+          <label>Engine Volume:</label>
+          <input
+            type="text"
+            value={engineVolume}
+            onChange={(e) => setEngineVolume(e.target.value)}
+            placeholder="Enter engine volume"
+          />
+        </InputWrapper>
+        <InputWrapper>
+          <label>Body Type:</label>
+          <input
+            type="text"
+            value={bodyType}
+            onChange={(e) => setBodyType(e.target.value)}
+            placeholder="Enter body type"
+          />
+        </InputWrapper>
+        <InputWrapper>
           <label>Mileage:</label>
           <input
             type="number"
@@ -109,16 +135,6 @@ const CarDetails = ({
             placeholder="Enter mileage"
           />
         </InputWrapper>
-        <InputWrapper>
-          <label>Color:</label>
-          <input
-            type="text"
-            value={color}
-            onChange={(e) => setColor(e.target.value)}
-            placeholder="Enter car color"
-          />
-        </InputWrapper>
-
         {vinResponse && (
           <ResponseContainer>
             <h3>VIN Lookup Response:</h3>
