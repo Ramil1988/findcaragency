@@ -521,26 +521,7 @@ const HiddenRadio = styled.input`
   pointer-events: none;
 `;
 
-const StatusIcon = styled.span`
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  ${(p) =>
-    p.shape === "circle"
-      ? `border-radius:50%; background:${p.color};`
-      : p.shape === "triangle"
-      ? `
-        width: 0; height: 0;
-        border-left: 7px solid transparent;
-        border-right: 7px solid transparent;
-        border-bottom: 12px solid ${p.color};
-      `
-      : `
-        width: 10px; height: 10px;
-        background:${p.color};
-        transform: rotate(45deg);
-      `};
-`;
+// StatusIcon removed (unused)
 
 const LegendBar = styled.div`
   display: flex;
