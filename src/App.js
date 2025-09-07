@@ -672,6 +672,12 @@ function App() {
           relevantReport={relevantReport}
           onChatGptResponse={setChatGptResponse}
           vinResponse={vinResponse}
+          techDetailsData={techDetailsData}
+          expertRecommendations={expertRecommendations}
+          estimatedCost={estimatedCost}
+          comments={comments}
+          engineVolume={engineVolume}
+          bodyType={bodyType}
         />
       </Form>
     </AppContainer>

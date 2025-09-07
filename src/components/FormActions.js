@@ -11,6 +11,12 @@ const FormActions = ({
   relevantReport,
   onChatGptResponse,
   vinResponse,
+  techDetailsData,
+  expertRecommendations,
+  estimatedCost,
+  comments,
+  engineVolume,
+  bodyType,
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -23,16 +29,108 @@ const FormActions = ({
       return responseText.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
     };
 
-    const prompt = `You are a car inspection assistant. Based on the following diagnostic information, provide a summary and important information. Summary should be concise and informative and help the customer to make a right choice of buying or not this vehicle.:
-    Inspector's Name: ${inspectorName}
-    Car Make: ${carMake}
-    Car Model: ${carModel}
-    Year: ${year}
-    Mileage: ${mileage}
-    Vinresponse: ${JSON.stringify(vinResponse)}
-    Attached Report: ${relevantReport}
+    // Build a compact data summary from the UI state for the model
+    const labels = {
+      intExt: {
+        headlights: "Headlights (high/low)",
+        taillights: "Taillights",
+        turnSignals: "Turn signals",
+        brakeLights: "Brake lights",
+        hazardLights: "Hazard warning lights",
+        instrumentWarnings: "Instrument panel warning lights",
+        washersWipers: "Windshield washer spray / wiper operation and blades",
+        windshieldCondition: "Windshield condition",
+        hornOperation: "Horn operation",
+      },
+      underHood: {
+        engineOil: "Engine oil level",
+        coolant: "Coolant level",
+        psFluid: "Power steering fluid level",
+        washerFluid: "Windshield washer fluid level",
+        transmissionFluid: "Transmission fluid level",
+        beltsHoses: "External drive belts and radiator hoses",
+        filters: "Air / Cabin / Dust & Pollen filter",
+      },
+      underVehicle: {
+        brakeLinesHoses: "Brakes lines / hoses / Parking brake cable",
+        shocksStrutsSuspension: "Shock absorbers / Struts / Suspension",
+        exhaustSystem: "Exhaust system",
+        leaks: "Engine oil and fluid leaks",
+        driveShaftCV: "Drive shaft / Constant velocity boots and bands",
+        steeringComponents: "Steering gearbox components",
+      },
+      brakePos: {
+        leftFront: "Left Front",
+        rightFront: "Right Front",
+        leftRear: "Left Rear",
+        rightRear: "Right Rear",
+      },
+    };
 
-    Summary:`;
+    const attention = [];
+    const immediate = [];
+
+    if (techDetailsData) {
+      const pushFlags = (groupKey) => {
+        const group = techDetailsData[groupKey] || {};
+        Object.entries(group).forEach(([k, v]) => {
+          if (v === "immediate") immediate.push(labels[groupKey][k]);
+          else if (v === "attention") attention.push(labels[groupKey][k]);
+        });
+      };
+      ["intExt", "underHood", "underVehicle"].forEach(pushFlags);
+
+      // Brake pads mapping from select values
+      const brakeMap = { ge5: ">= 5 mm", between3and4: "3-4 mm", le2: "<= 2 mm" };
+      if (techDetailsData.brakeCondition) {
+        Object.entries(techDetailsData.brakeCondition).forEach(([pos, key]) => {
+          if (key === "le2") immediate.push(`${labels.brakePos[pos]} brake pads (${brakeMap[key]})`);
+          else if (key === "between3and4") attention.push(`${labels.brakePos[pos]} brake pads (${brakeMap[key]})`);
+        });
+      }
+    }
+
+    const tires = techDetailsData?.tires || {};
+    const tireNotes = [
+      techDetailsData?.rotationSuggested ? "Rotation suggested" : null,
+      techDetailsData?.alignmentSuggested ? "Alignment suggested" : null,
+      techDetailsData?.replacementSuggested ? "Replacement suggested" : null,
+      techDetailsData?.seasonalChangeoverSuggested ? "Seasonal changeover suggested" : null,
+    ].filter(Boolean);
+
+    const structured = {
+      vehicle: {
+        make: carMake,
+        model: carModel,
+        year,
+        mileage,
+        engineVolume,
+        bodyType,
+      },
+      inspector: inspectorName,
+      flags: { immediate, attention },
+      brakes: techDetailsData?.brakeCondition || {},
+      tires,
+      tireNotes,
+      recommendations: { expertRecommendations, estimatedCost },
+      comments,
+      vinResponse,
+      extractedReportSnippet: (relevantReport || "").slice(0, 2000),
+    };
+
+    const prompt = `You are a vehicle inspection assistant. Create a concise, customer-friendly summary from the provided structured data.
+
+Rules:
+- Start with a 1–2 sentence overview.
+- Then add sections whose titles end with a colon, e.g. "Immediate Concerns:", "Items to Monitor:", "Tires & Brakes:", "Recommendations:", "Notes:".
+- Use bullet points starting with "- " under each section.
+- Prioritize items in 'flags.immediate' first, then 'flags.attention'.
+- Include any brake positions not at ">= 5 mm" and reflect severity.
+- If 'tireNotes' is non-empty, include them as bullets.
+- If 'recommendations' or 'comments' are provided, summarize them.
+- Be factual and avoid duplication with the same wording.
+
+Data:\n${JSON.stringify(structured, null, 2)}\n`;
 
     setLoading(true);
     setError(null);
