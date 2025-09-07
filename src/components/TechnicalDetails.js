@@ -97,9 +97,7 @@ const TechnicalDetails = ({ onStateChange }) => {
     steeringComponents: STATUS.OK,
   });
 
-  // Genuine Floor Mats
-  const [floorMatsInstalled, setFloorMatsInstalled] = useState(false);
-  const [floorMatsAnchored, setFloorMatsAnchored] = useState(false);
+  // Genuine Floor Mats removed per requirement
 
   // Tire Condition
   const emptyTire = { wearPattern: "", tread32nds: "", pressurePsi: "" };
@@ -147,8 +145,6 @@ const TechnicalDetails = ({ onStateChange }) => {
         battery: { result: batteryResult, dom: batteryDom },
         underHood,
         underVehicle,
-        floorMatsInstalled,
-        floorMatsAnchored,
         tires,
         rotationSuggested,
         alignmentSuggested,
@@ -166,8 +162,6 @@ const TechnicalDetails = ({ onStateChange }) => {
     batteryDom,
     underHood,
     underVehicle,
-    floorMatsInstalled,
-    floorMatsAnchored,
     tires,
     rotationSuggested,
     alignmentSuggested,
@@ -299,27 +293,7 @@ const TechnicalDetails = ({ onStateChange }) => {
             </Row>
           ))}
 
-          <SectionTitle>Genuine Floor Mats</SectionTitle>
-          <Row>
-            <CheckboxLabel>
-              <input
-                type="checkbox"
-                checked={floorMatsInstalled}
-                onChange={(e) => setFloorMatsInstalled(e.target.checked)}
-              />
-              Genuine floor mats installed
-            </CheckboxLabel>
-          </Row>
-          <Row>
-            <CheckboxLabel>
-              <input
-                type="checkbox"
-                checked={floorMatsAnchored}
-                onChange={(e) => setFloorMatsAnchored(e.target.checked)}
-              />
-              Anchored properly and only 1 mat at driver's position
-            </CheckboxLabel>
-          </Row>
+          {null}
         </Col>
 
         <Col>

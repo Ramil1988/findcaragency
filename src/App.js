@@ -93,53 +93,65 @@ function App() {
   const generatePdf = () => {
     const doc = new jsPDF();
 
-    // Embed a font that supports emojis (Noto Color Emoji or equivalent)
-    const notoEmojiFont = "data:font/ttf;base64,<BASE64_ENCODED_FONT>"; // Replace with actual Base64-encoded font
-    doc.addFileToVFS("NotoEmoji-Regular.ttf", notoEmojiFont);
-    doc.addFont("NotoEmoji-Regular.ttf", "NotoEmoji", "normal");
-    doc.setFont("NotoEmoji");
-
     // Set initial positions and constants
-    let y = 20; // Initial Y position, leaving space for the logo
+    let currentY = 20; // Single Y position tracker
     const lineHeight = 10;
-    const margin = 10; // Left margin
-    const pageWidth = 210; // A4 page width in mm
+    const margin = 10;
+    const pageWidth = 210;
     const usableWidth = pageWidth - margin * 2;
+    const pageHeight = 280; // Usable page height
 
-    // Helper function to add text with bold styling
-    const addText = (text, isBold = false) => {
+    // Helper function to check if we need a new page
+    const ensureSpace = (requiredSpace) => {
+      if (currentY + requiredSpace > pageHeight) {
+        doc.addPage();
+        currentY = 20; // Reset to top of new page
+      }
+    };
+
+    // Helper function to add text with proper spacing
+    const addText = (text, isBold = false, fontSize = 12) => {
+      doc.setFontSize(fontSize);
       doc.setFont("helvetica", isBold ? "bold" : "normal");
       const lines = doc.splitTextToSize(text, usableWidth);
+
+      // Ensure space for all lines
+      ensureSpace(lines.length * lineHeight + 5);
+
       lines.forEach((line) => {
-        if (y + lineHeight > 280) {
-          doc.addPage();
-          y = 20;
-        }
-        doc.text(line, margin, y);
-        y += lineHeight;
+        doc.text(line, margin, currentY);
+        currentY += lineHeight;
       });
     };
 
-    // Add space above sections
+    // Add space between sections
     const addSpace = (space = 10) => {
-      y += space;
+      currentY += space;
     };
 
-    // Add logo to the PDF
+    // Add logo and header
     const img = new Image();
-    img.src = "/FindCarAgencyLogo.png"; // Path to the logo image
-    img.onload = () => {
-      // Draw logo
-      doc.addImage(img, "PNG", 10, 10, 50, 50); // Logo size: width 50mm, height 50mm
+    img.src = "/FindCarAgencyLogo.png";
 
-      // Draw header details
+    img.onload = () => {
+      // Reserve space for logo and header
+      const logoHeight = 50;
+      const headerHeight = 30;
+      const totalHeaderSpace = Math.max(logoHeight, headerHeight) + 10;
+
+      // Draw logo
+      doc.addImage(img, "PNG", 10, 10, 50, 50);
+
+      // Draw header details on the right
       const headerStartX = pageWidth - 40;
       doc.setFontSize(18);
       doc.setFont("helvetica", "bold");
+      doc.setTextColor(0);
       doc.text("Car Inspection Report", headerStartX, 20, { align: "right" });
 
       doc.setFontSize(12);
       doc.setFont("helvetica", "normal");
+      doc.setTextColor(0);
       doc.text(`Inspector Name: ${inspectorName}`, headerStartX, 30, {
         align: "right",
       });
@@ -147,29 +159,25 @@ function App() {
         align: "right",
       });
 
-      // Move the Y position below the logo and header
-      y = 50;
+      // Set starting position after header
+      currentY = totalHeaderSpace;
 
-      // Add Car Details section
+      // Car Details section
       addSpace(15);
-      doc.setFontSize(16);
-      addText("Car Details", true);
-      doc.setFontSize(12);
+      addText("Car Details", true, 16);
       addText(`Make: ${carMake}`);
       addText(`Model: ${carModel}`);
       addText(`Year: ${year}`);
       addText(`Mileage: ${mileage}`);
       addText(`VIN Code: ${vinCode}`);
 
-      // Add Technical Details section
+      // Technical Details section
       addSpace(15);
-      doc.setFontSize(16);
-      addText("Technical Details", true);
-      doc.setFontSize(12);
+      addText("Technical Details", true, 16);
       addText(`Engine Volume: ${engineVolume}`);
       addText(`Body Type: ${bodyType}`);
 
-      // Render new Technical Details data from the UI
+      // Render Technical Details data if available
       if (techDetailsData) {
         const green = [46, 125, 50];
         const yellow = [241, 176, 0];
@@ -190,98 +198,110 @@ function App() {
         const drawThree = (x, y, status, gap = 6.5) => {
           const order = ["ok", "attention", "immediate"];
           const colors = { ok: green, attention: yellow, immediate: red };
-          order.forEach((k, idx) => drawCircle(x + idx * gap, y, colors[k], status === k));
+          order.forEach((k, idx) =>
+            drawCircle(x + idx * gap, y, colors[k], status === k)
+          );
         };
 
-        // Single-column stacked layout: large checklist table, then Tire Condition below
-        const boxX = margin;
-        const boxW = usableWidth; // full width for table
-        let yTop = y;
+        // Legend (single line with three items)
+        addSpace(10);
+        const legendHeight = 14; // Single row height
+        ensureSpace(legendHeight);
 
-        const ensureSpace = (needed) => {
-          const limit = 280;
-          if (yTop + needed > limit) {
-            doc.addPage();
-            yTop = 20;
-          }
-        };
-
-        // Legend – compact stacked inside full-width box
-        const legendItems = [
-          ["Satisfactory", "ok"],
-          ["Needs Attention", "attention"],
-          ["Immediate", "immediate"],
-        ];
-        const legendRowH = 5.5;
-        const legendBoxH = legendItems.length * legendRowH + 3;
-        ensureSpace(legendBoxH + 3);
+        const legendY = currentY;
         doc.setDrawColor(180);
         doc.setFillColor(245);
-        doc.rect(boxX, yTop, boxW, legendBoxH, "DF");
-        doc.setFont("helvetica", "normal");
-        let ly = yTop + 3.5;
-        legendItems.forEach(([label, key]) => {
-          drawThree(boxX + 6, ly - 1, key);
-          doc.text(label, boxX + 28, ly);
-          ly += legendRowH;
+        doc.rect(margin, legendY, usableWidth, legendHeight, "DF");
+
+        const legendItems = [
+          ["Satisfactory", green, false],
+          ["May Require Further Attention", yellow, false],
+          ["Requires Immediate Attention", red, false],
+        ];
+
+        const itemWidth = usableWidth / legendItems.length;
+        const iconY = legendY + 7; // vertically centered
+        legendItems.forEach(([label, color, selected], idx) => {
+          const xStart = margin + 8 + idx * itemWidth; // add a bit more left padding
+          drawCircle(xStart, iconY, color, selected);
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(10); // smaller text to avoid overlap
+          doc.text(label, xStart + 8, iconY + 1);
         });
-        // Slightly larger gap between legend and first header
-        yTop += legendBoxH + 3;
+        doc.setFontSize(12); // restore default size
 
-        // Table metrics
-        const labelPad = 2;
-        const iconBlockWidth = 24; // allow comfortable icon fit
-        // Make rows exactly the same total width as headers (no side margin)
-        const labelWidth = boxW - iconBlockWidth;
-        const rowGap = 0; // no extra gap between rows
+        currentY += legendHeight + 5;
 
-        const sectionHeader = (title, minNext = 16) => {
-          const headerH = 7;
-          // ensure enough space for header plus at least one upcoming row/content
-          ensureSpace(headerH + minNext);
+        // Helper function for section headers
+        const addSectionHeader = (title) => {
+          const headerHeight = 8;
+          ensureSpace(headerHeight + 10); // Ensure space for header + some content
+
           doc.setDrawColor(160);
           doc.setFillColor(230);
-          doc.rect(boxX, yTop, boxW, headerH, "F");
+          doc.rect(margin, currentY, usableWidth, headerHeight, "F");
           doc.setFont("helvetica", "bold");
           doc.setTextColor(0);
-          // place text near the bottom of the header area for consistent baseline
-          doc.text(title, boxX + 2, yTop + headerH - 2);
-          // draw a separator line at the bottom of the header
+          doc.text(title, margin + 2, currentY + headerHeight - 2);
+
+          // Draw separator line
           doc.setDrawColor(190);
-          doc.line(boxX, yTop + headerH, boxX + boxW, yTop + headerH);
-          yTop += headerH; // next row starts exactly under the header underline
+          doc.line(
+            margin,
+            currentY + headerHeight,
+            margin + usableWidth,
+            currentY + headerHeight
+          );
+
+          currentY += headerHeight;
+
+          // Reset font to normal so following rows aren't bold
+          doc.setFont("helvetica", "normal");
         };
 
-        const drawRow = (label, status) => {
-          const lines = doc.splitTextToSize(label, labelWidth - labelPad * 2);
-          const rowHeight = Math.max(6, lines.length * 4.5 + 3);
-          ensureSpace(rowHeight + rowGap);
-          const top = yTop; // top edge of the row
-          // Cells
+        // Helper function for table rows
+        const addTableRow = (label, status) => {
+          const labelWidth = usableWidth - 24; // Reserve space for status icons
+          const iconBlockWidth = 24;
+
+          doc.setFont("helvetica", "normal");
+          const lines = doc.splitTextToSize(label, labelWidth - 4);
+          const rowHeight = Math.max(8, lines.length * 4.5 + 3);
+
+          ensureSpace(rowHeight);
+
+          // Draw cells
           doc.setDrawColor(190);
           doc.setFillColor(252);
-          doc.rect(boxX, top, labelWidth, rowHeight, "DF");
+          doc.rect(margin, currentY, labelWidth, rowHeight, "DF");
           doc.setFillColor(255);
-          doc.rect(boxX + labelWidth, top, iconBlockWidth, rowHeight, "S");
-          // Text
-          doc.setFont("helvetica", "normal");
-          let ty = top + 4; // baseline inside the cell
-          lines.forEach((ln) => {
-            doc.text(ln, boxX + labelPad, ty);
-            ty += 4.5;
+          doc.rect(
+            margin + labelWidth,
+            currentY,
+            iconBlockWidth,
+            rowHeight,
+            "S"
+          );
+
+          // Add text
+          let textY = currentY + 5;
+          lines.forEach((line) => {
+            doc.text(line, margin + 2, textY);
+            textY += 4.5;
           });
-          // Icons centered within icon cell
-          const iconCellLeft = boxX + labelWidth;
-          const cx = iconCellLeft + 3.5;
-          const cy = top + rowHeight / 2; // true vertical center
-          drawThree(cx, cy, status, 6);
-          yTop += rowHeight + rowGap;
+
+          // Add status icons
+          const iconX = margin + labelWidth + 3.5;
+          const iconY = currentY + rowHeight / 2;
+          drawThree(iconX, iconY, status, 6);
+
+          // Remove extra spacing between rows for a tighter table
+          currentY += rowHeight;
         };
 
-        // Interior / Exterior
-        sectionHeader("Interior / Exterior");
-        doc.setFont("helvetica", "normal");
-        [
+        // Interior/Exterior section
+        addSectionHeader("Interior / Exterior");
+        const intExtItems = [
           ["Headlights (high/low)", "headlights"],
           ["Taillights", "taillights"],
           ["Turn signals", "turnSignals"],
@@ -294,23 +314,32 @@ function App() {
           ],
           ["Windshield condition", "windshieldCondition"],
           ["Horn operation", "hornOperation"],
-        ].forEach(([label, key]) => drawRow(label, techDetailsData.intExt[key]));
+        ];
 
-        // Battery performance (simple two rows)
-        sectionHeader("Battery Performance (see printout)");
-        doc.setFont("helvetica", "normal");
-        drawRow(
-          `Result: ${techDetailsData.battery.result === "good" ? "Good" : "Replace"}`,
+        intExtItems.forEach(([label, key]) => {
+          addTableRow(label, techDetailsData.intExt[key]);
+        });
+
+        // Battery Performance section
+        addSpace(5);
+        addSectionHeader("Battery Performance (see printout)");
+        addTableRow(
+          `Result: ${
+            techDetailsData.battery.result === "good" ? "Good" : "Replace"
+          }`,
           techDetailsData.battery.result === "good" ? "ok" : "immediate"
         );
         if (techDetailsData.battery.dom) {
-          drawRow(`Date of Manufacture: ${techDetailsData.battery.dom}`, "ok");
+          addTableRow(
+            `Date of Manufacture: ${techDetailsData.battery.dom}`,
+            "ok"
+          );
         }
 
-        // Under Hood
-        sectionHeader("Under Hood");
-        doc.setFont("helvetica", "normal");
-        [
+        // Under Hood section
+        addSpace(5);
+        addSectionHeader("Under Hood");
+        const underHoodItems = [
           ["Engine oil level", "engineOil"],
           ["Coolant level", "coolant"],
           ["Power steering fluid level", "psFluid"],
@@ -318,42 +347,33 @@ function App() {
           ["Transmission fluid level", "transmissionFluid"],
           ["External drive belts and radiator hoses", "beltsHoses"],
           ["Air / Cabin / Dust & Pollen filter", "filters"],
-        ].forEach(([label, key]) => drawRow(label, techDetailsData.underHood[key]));
+        ];
 
-        // Under Vehicle
-        sectionHeader("Under Vehicle");
-        doc.setFont("helvetica", "normal");
-        [
+        underHoodItems.forEach(([label, key]) => {
+          addTableRow(label, techDetailsData.underHood[key]);
+        });
+
+        // Under Vehicle section
+        addSpace(5);
+        addSectionHeader("Under Vehicle");
+        const underVehicleItems = [
           ["Brakes lines / hoses / Parking brake cable", "brakeLinesHoses"],
           ["Shock absorbers / Struts / Suspension", "shocksStrutsSuspension"],
           ["Exhaust system", "exhaustSystem"],
           ["Engine oil and fluid leaks", "leaks"],
           ["Drive shaft / Constant velocity boots and bands", "driveShaftCV"],
           ["Steering gearbox components", "steeringComponents"],
-        ].forEach(([label, key]) => drawRow(label, techDetailsData.underVehicle[key]));
+        ];
 
-        // Floor mats
-        sectionHeader("Genuine Floor Mats");
-        const checkBox = (x, y, checked) => {
-          doc.setDrawColor(120);
-          doc.rect(x, y - 3, 3.5, 3.5);
-          if (checked) {
-            doc.setDrawColor(0);
-            doc.setLineWidth(0.6);
-            doc.line(x + 0.5, y - 1, x + 1.4, y + 0.8);
-            doc.line(x + 1.4, y + 0.8, x + 3, y - 2);
-          }
-        };
-        checkBox(boxX, yTop, techDetailsData.floorMatsInstalled);
-        doc.text("Genuine floor mats installed", boxX + 6, yTop);
-        yTop += 5.5;
-        checkBox(boxX, yTop, techDetailsData.floorMatsAnchored);
-        doc.text("Anchored properly and only 1 mat at driver's position", boxX + 6, yTop);
-        yTop += 8;
+        underVehicleItems.forEach(([label, key]) => {
+          addTableRow(label, techDetailsData.underVehicle[key]);
+        });
 
-        // Tire Condition (stacked under checklist)
-        sectionHeader("Tire Condition");
-        doc.setFont("helvetica", "normal");
+        // Floor Mats section removed per requirement
+
+        // Tire Condition section
+        addSpace(8); // add visual gap between sections
+        addSectionHeader("Tire Condition");
         const tireOrder = [
           ["Left Front", "leftFront"],
           ["Right Front", "rightFront"],
@@ -361,101 +381,163 @@ function App() {
           ["Right Rear", "rightRear"],
           ["Spare", "spare"],
         ];
-        const printTire = (label, t) => {
-          const rowH = 14;
-          ensureSpace(rowH + 2);
-          const top = yTop;
+
+        tireOrder.forEach(([label, key]) => {
+          const tireData = techDetailsData.tires[key];
+          const rowHeight = 16;
+          ensureSpace(rowHeight);
+
           doc.setDrawColor(180);
           doc.setFillColor(255);
-          doc.rect(boxX, top, boxW, rowH, "S");
+          doc.rect(margin, currentY, usableWidth, rowHeight, "S");
+
           doc.setFont("helvetica", "bold");
-          doc.text(label, boxX + 2, top + 4);
+          doc.text(label, margin + 2, currentY + 6);
           doc.setFont("helvetica", "normal");
-          doc.text(`Wear pattern: ${t.wearPattern || "--"}`, boxX + 2, top + 9);
-          doc.text(`Tire tread (32nds): ${t.tread32nds || ""}`, boxX + 60, top + 9);
-          doc.text(`Tire pressure (psi): ${t.pressurePsi || ""}`, boxX + 130, top + 9);
-          yTop += rowH + 2;
-        };
-        tireOrder.forEach(([lbl, key]) => printTire(lbl, techDetailsData.tires[key]));
+          doc.text(
+            `Wear pattern: ${tireData.wearPattern || "--"}`,
+            margin + 2,
+            currentY + 12
+          );
+          doc.text(
+            `Tire tread (32nds): ${tireData.tread32nds || ""}`,
+            margin + 60,
+            currentY + 12
+          );
+          doc.text(
+            `Tire pressure (psi): ${tireData.pressurePsi || ""}`,
+            margin + 130,
+            currentY + 12
+          );
+
+          // Make tire rows contiguous like a table (no extra spacing)
+          currentY += rowHeight;
+        });
 
         // Tire suggestions
-        ensureSpace(6);
-        doc.text(`Rotation suggested: ${techDetailsData.rotationSuggested ? "Yes" : "No"}`, boxX, yTop);
-        yTop += 5;
-        ensureSpace(6);
-        doc.text(`Alignment suggested: ${techDetailsData.alignmentSuggested ? "Yes" : "No"}`, boxX, yTop);
-        yTop += 5;
-        ensureSpace(6);
-        doc.text(`Replacement suggested: ${techDetailsData.replacementSuggested ? "Yes" : "No"}`, boxX, yTop);
-        yTop += 5;
-        ensureSpace(6);
-        doc.text(`Seasonal changeover suggested: ${techDetailsData.seasonalChangeoverSuggested ? "Yes" : "No"}`, boxX, yTop);
-        yTop += 8;
+        addSpace(5);
+        ensureSpace(25);
+        doc.setFont("helvetica", "normal");
+        doc.text(
+          `Rotation suggested: ${
+            techDetailsData.rotationSuggested ? "Yes" : "No"
+          }`,
+          margin,
+          currentY
+        );
+        currentY += 6;
+        doc.text(
+          `Alignment suggested: ${
+            techDetailsData.alignmentSuggested ? "Yes" : "No"
+          }`,
+          margin,
+          currentY
+        );
+        currentY += 6;
+        doc.text(
+          `Replacement suggested: ${
+            techDetailsData.replacementSuggested ? "Yes" : "No"
+          }`,
+          margin,
+          currentY
+        );
+        currentY += 6;
+        doc.text(
+          `Seasonal changeover suggested: ${
+            techDetailsData.seasonalChangeoverSuggested ? "Yes" : "No"
+          }`,
+          margin,
+          currentY
+        );
+        currentY += 10;
 
-        // Brake Condition
-        sectionHeader("Brake Condition");
-        const brakeMap = { ge5: "≥ 5 mm", between3and4: "3–4 mm", le2: "≤ 2 mm" };
-        [
+        // Brake Condition section
+        addSectionHeader("Brake Condition");
+        const brakeMap = {
+          // Use ASCII-safe symbols for PDF to avoid encoding glitches
+          ge5: ">= 5 mm",
+          between3and4: "3-4 mm",
+          le2: "<= 2 mm",
+        };
+        const brakePositions = [
           ["Left Front", "leftFront"],
           ["Right Front", "rightFront"],
           ["Left Rear", "leftRear"],
           ["Right Rear", "rightRear"],
-        ].forEach(([lbl, key]) => {
-          ensureSpace(6);
-          doc.text(`${lbl}: ${brakeMap[techDetailsData.brakeCondition[key]]}`, boxX + 2, yTop);
-          yTop += 5;
-        });
-        yTop += 4;
+        ];
 
-        // Maintenance / Recalls
-        sectionHeader("Maintenance / Recalls");
-        doc.setFont("helvetica", "normal");
-        ensureSpace(6);
-        doc.text(`Maintenance indicator light reset: ${techDetailsData.maintResetYes ? "YES" : "NO"}`, boxX + 2, yTop);
-        yTop += 5;
-        ensureSpace(6);
-        doc.text(`Any outstanding recalls / PUD: ${techDetailsData.recallsYes ? "YES" : "NO"}`, boxX + 2, yTop);
-        yTop += 8;
-
-        // Comments
-        sectionHeader("Comments");
-        const commentLines = doc.splitTextToSize(techDetailsData.comments || "", boxW - 4);
-        commentLines.forEach((line) => {
-          ensureSpace(6);
-          doc.text(line, boxX + 2, yTop);
-          yTop += 5;
+        // Add space after the header
+        currentY += 5;
+        ensureSpace(brakePositions.length * 8 + 5);
+        brakePositions.forEach(([label, key]) => {
+          doc.text(
+            `${label}: ${brakeMap[techDetailsData.brakeCondition[key]]}`,
+            margin + 2,
+            currentY
+          );
+          currentY += 8; // Increased spacing between items
         });
 
-        // Continue from bottom
-        y = yTop + 6;
+        // Maintenance/Recalls section
+        addSpace(10); // Increased space before section
+        addSectionHeader("Maintenance / Recalls");
+        currentY += 5; // Add space after header
+        ensureSpace(20);
+        doc.text(
+          `Maintenance indicator light reset: ${
+            techDetailsData.maintResetYes ? "YES" : "NO"
+          }`,
+          margin + 2,
+          currentY
+        );
+        currentY += 8; // Increased spacing
+        doc.text(
+          `Any outstanding recalls / PUD: ${
+            techDetailsData.recallsYes ? "YES" : "NO"
+          }`,
+          margin + 2,
+          currentY
+        );
+        currentY += 12; // Increased spacing after section
+
+        // Comments section for technical details
+        addSpace(8);
+        addSectionHeader("Comments");
+        if (techDetailsData.comments) {
+          const commentLines = doc.splitTextToSize(
+            techDetailsData.comments,
+            usableWidth - 4
+          );
+          ensureSpace(commentLines.length * 6 + 5);
+          commentLines.forEach((line) => {
+            doc.text(line, margin + 2, currentY);
+            currentY += 6;
+          });
+        }
+        currentY += 5;
       }
 
-      // Safety Inspection Checklist section removed
-
-      // Add Recommendations section
+      // Recommendations section
       addSpace(15);
-      doc.setFontSize(16);
-      addText("Recommendations", true);
-      doc.setFontSize(12);
+      addText("Recommendations", true, 16);
       addText(`Expert Recommendations: ${expertRecommendations}`);
       addText(`Estimated Cost: ${estimatedCost}`);
 
-      // Add Comments section
+      // Comments section
       addSpace(15);
-      doc.setFontSize(16);
-      addText("Comments", true);
-      doc.setFontSize(12);
+      addText("Comments", true, 16);
       addText(`${comments}`);
 
-      // Add Generated AI Response section
+      // Generated AI Response section
       addSpace(15);
-      doc.setFontSize(16);
-      addText("Generated AI Response", true);
-      doc.setFontSize(12);
+      addText("Generated AI Response", true, 16);
 
       const processedResponse = processChatGptResponse(chatGptResponse);
       processedResponse.forEach(({ text, bold }) => {
-        addText(text, bold);
+        if (text.trim()) {
+          // Only add non-empty text
+          addText(text, bold);
+        }
       });
 
       // Save the PDF
