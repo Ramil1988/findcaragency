@@ -231,14 +231,14 @@ Rules:
 - Prioritize items in 'flags.immediate' first, then 'flags.attention'.
 - Include any brake positions not at ">= 5 mm" and reflect severity.
 - If 'tireNotes' is non-empty, include them as bullets.
-- Cost policy: Never infer or state an "estimated repair cost" from 'reportText' or any amounts in the report; only use 'estimatedCost' provided in the structured data. If 'estimatedCost' is empty, do not mention an estimated repair cost.
-- If 'estimatedCost' is provided, include it near the end as a single bullet (e.g., "Estimated repair cost: $X").
+- Cost policy: Never infer or state an "estimated vehicle cost" from 'reportText' or any amounts in the report; only use 'estimatedCost' provided in the structured data. If 'estimatedCost' is empty, do not mention an estimated vehicle cost.
+- If 'estimatedCost' is provided, include it near the end as a single bullet (e.g., "Estimated vehicle cost: $X").
 - Be factual and avoid duplication with the same wording.
 
 Report analysis requirement:
 - The field 'reportText' contains text extracted from an attached report (e.g., CARFAX or service records). Read it and add a dedicated section titled "Report Summary:".
 - In "Report Summary:", use both 'reportExtract' and 'reportText'. Include only facts such as: accident history, damage records (dates/amounts), branding/status (e.g., Normal/Salvage/Rebuilt), registration locations and dates, odometer readings/milestones, service events performed, recalls, warranty or ownership notes.
-- When listing monetary amounts from the report, label them with their actual context (e.g., claim amounts, repair invoices, or report price) and do NOT call them "estimated repair cost".
+- When listing monetary amounts from the report, label them with their actual context (e.g., claim amounts, repair invoices, or report price) and do NOT call them "estimated vehicle cost".
 - Explicitly state positives like "No police-reported accidents" if the report says so.
 - Do not speculate; if a detail is unclear or not present, omit it.
 - If 'reportText' is empty, omit the "Report Summary:" section.
@@ -247,7 +247,7 @@ Report analysis requirement:
   - Add "Actionable Recommendations:" that combine (a) inspection flags and (b) report findings into clear next steps for the buyer, prioritized (e.g., safety-critical first, then preventative, then paperwork like confirming branding/recalls).
   - If 'reportExtract.highestOdometer' exists and 'vehicle.mileage' is provided, compare them. If they differ by more than ~10%, call this out and recommend verification (e.g., maintenance receipts, recent service report).
   - When listing damage records, include dates and amounts if parsed.
-  - If 'estimatedCost' is provided, restate it at the end of this section as "Estimated repair cost: $X".
+  - If 'estimatedCost' is provided, restate it at the end of this section as "Estimated vehicle cost: $X".
 
 Data:\n${JSON.stringify(structured, null, 2)}\n`;
 
