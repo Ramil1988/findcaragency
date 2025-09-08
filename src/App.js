@@ -22,7 +22,7 @@ function App() {
   const [engineVolume, setEngineVolume] = useState("");
   const [bodyType, setBodyType] = useState("");
   // TechnicalDetails now manages its own state internally
-  const [estimatedCost, setEstimatedCost] = useState("");
+  const [estimatedCost, setEstimatedCost] = useState(""); // store as raw digits/decimal, e.g., "12003.50"
   const [relevantReport, setRelevantReport] = useState("");
 
   const [inspectorDetailsVisible, setInspectorDetailsVisible] = useState(true);
@@ -33,6 +33,24 @@ function App() {
   const [chatGptResponse, setChatGptResponse] = useState("");
 
   const [vinResponse, setVinResponse] = useState(null);
+  
+  // Currency helpers
+  const parseCurrency = (input) => {
+    if (!input) return "";
+    const cleaned = String(input).replace(/[^0-9.]/g, "");
+    // Keep only first decimal point
+    const parts = cleaned.split(".");
+    const normalized = parts.length > 1 ? `${parts[0]}.${parts.slice(1).join("").replace(/\./g, "")}` : parts[0];
+    // Limit to two decimals if present
+    const [intPart, decPart] = normalized.split(".");
+    return decPart !== undefined ? `${intPart}${decPart ? "." + decPart.slice(0, 2) : ""}` : intPart;
+  };
+  const formatCurrency = (raw) => {
+    if (!raw) return "";
+    const [i, d] = String(raw).split(".");
+    const withCommas = i.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return d !== undefined && d !== "" ? `$${withCommas}.${d}` : `$${withCommas}`;
+  };
   // Parse report text for quick preview chips
   const parsedReport = useMemo(
     () => extractReport(relevantReport || ""),
@@ -525,7 +543,7 @@ function App() {
       addSpace(15);
       addText("Estimated Vehicle Cost", true, 16);
       if (estimatedCost) {
-        addText(`Estimated Vehicle Cost: ${estimatedCost}`);
+        addText(`Estimated Vehicle Cost: ${formatCurrency(estimatedCost)}`);
       }
 
       // Generated AI Response section
@@ -623,10 +641,11 @@ function App() {
           </SectionHeader>
           <Label>Estimated Vehicle Cost:</Label>
           <input
-            type="number"
-            value={estimatedCost}
-            onChange={(e) => setEstimatedCost(e.target.value)}
-            placeholder="Enter estimated cost"
+            type="text"
+            inputMode="decimal"
+            value={formatCurrency(estimatedCost)}
+            onChange={(e) => setEstimatedCost(parseCurrency(e.target.value))}
+            placeholder="e.g., $12,000"
             style={{
               border: "1px solid #ccc",
               borderRadius: 4,
