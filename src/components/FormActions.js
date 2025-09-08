@@ -12,9 +12,7 @@ const FormActions = ({
   onChatGptResponse,
   vinResponse,
   techDetailsData,
-  expertRecommendations,
   estimatedCost,
-  comments,
   engineVolume,
   bodyType,
 }) => {
@@ -216,8 +214,7 @@ const FormActions = ({
       brakes: techDetailsData?.brakeCondition || {},
       tires,
       tireNotes,
-      recommendations: { expertRecommendations, estimatedCost },
-      comments,
+      estimatedCost,
       vinResponse,
       // Provide a generous slice so the model can summarize the report text.
       // Keep some cap to avoid extremely large payloads.
@@ -234,7 +231,7 @@ Rules:
 - Prioritize items in 'flags.immediate' first, then 'flags.attention'.
 - Include any brake positions not at ">= 5 mm" and reflect severity.
 - If 'tireNotes' is non-empty, include them as bullets.
-- If 'recommendations' or 'comments' are provided, summarize them.
+- If 'estimatedCost' is provided, include it near the end as a single bullet (e.g., "Estimated cost: $X").
 - Be factual and avoid duplication with the same wording.
 
 Report analysis requirement:
@@ -245,9 +242,10 @@ Report analysis requirement:
 - If 'reportText' is empty, omit the "Report Summary:" section.
 
  Final section:
- - Add "Actionable Recommendations:" that combine (a) inspection flags and (b) report findings into clear next steps for the buyer, prioritized (e.g., safety-critical first, then preventative, then paperwork like confirming branding/recalls).
- - If 'reportExtract.highestOdometer' exists and 'vehicle.mileage' is provided, compare them. If they differ by more than ~10%, call this out and recommend verification (e.g., maintenance receipts, recent service report).
- - When listing damage records, include dates and amounts if parsed.
+  - Add "Actionable Recommendations:" that combine (a) inspection flags and (b) report findings into clear next steps for the buyer, prioritized (e.g., safety-critical first, then preventative, then paperwork like confirming branding/recalls).
+  - If 'reportExtract.highestOdometer' exists and 'vehicle.mileage' is provided, compare them. If they differ by more than ~10%, call this out and recommend verification (e.g., maintenance receipts, recent service report).
+  - When listing damage records, include dates and amounts if parsed.
+  - If 'estimatedCost' is provided, restate it at the end of this section.
 
 Data:\n${JSON.stringify(structured, null, 2)}\n`;
 

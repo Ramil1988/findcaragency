@@ -3,7 +3,7 @@ import styled from "styled-components";
 import InspectorDetails from "./components/InspectorDetails";
 import CarDetails from "./components/CarDetails";
 import TechnicalDetails from "./components/TechnicalDetails";
-import Recommendations from "./components/Recommendations";
+// Recommendations section removed; keep only Estimated Cost input
 import FormActions from "./components/FormActions";
 import * as pdfjsLib from "pdfjs-dist/build/pdf";
 import { jsPDF } from "jspdf";
@@ -22,15 +22,13 @@ function App() {
   const [engineVolume, setEngineVolume] = useState("");
   const [bodyType, setBodyType] = useState("");
   // TechnicalDetails now manages its own state internally
-  const [expertRecommendations, setExpertRecommendations] = useState("");
   const [estimatedCost, setEstimatedCost] = useState("");
-  const [comments, setComments] = useState("");
   const [relevantReport, setRelevantReport] = useState("");
 
   const [inspectorDetailsVisible, setInspectorDetailsVisible] = useState(true);
   const [carDetailsVisible, setCarDetailsVisible] = useState(true);
   const [technicalDetailsVisible, setTechnicalDetailsVisible] = useState(true);
-  const [recommendationsVisible, setRecommendationsVisible] = useState(true);
+  // Recommendations section removed
   const [techDetailsData, setTechDetailsData] = useState(null);
   const [chatGptResponse, setChatGptResponse] = useState("");
 
@@ -523,16 +521,12 @@ function App() {
         currentY += 5;
       }
 
-      // Recommendations section
+      // Estimated Cost (kept)
       addSpace(15);
-      addText("Recommendations", true, 16);
-      addText(`Expert Recommendations: ${expertRecommendations}`);
-      addText(`Estimated Cost: ${estimatedCost}`);
-
-      // Comments section
-      addSpace(15);
-      addText("Comments", true, 16);
-      addText(`${comments}`);
+      addText("Estimated Cost", true, 16);
+      if (estimatedCost) {
+        addText(`Estimated Cost: ${estimatedCost}`);
+      }
 
       // Generated AI Response section
       addSpace(15);
@@ -619,23 +613,22 @@ function App() {
 
         <Section>
           <SectionHeader>
-            <SectionTitle>Recommendations</SectionTitle>
-            <CollapseButton
-              onClick={() => setRecommendationsVisible(!recommendationsVisible)}
-            >
-              {recommendationsVisible ? "Collapse" : "Expand"}
-            </CollapseButton>
+            <SectionTitle>Estimated Cost</SectionTitle>
           </SectionHeader>
-          {recommendationsVisible && (
-            <Recommendations
-              expertRecommendations={expertRecommendations}
-              setExpertRecommendations={setExpertRecommendations}
-              estimatedCost={estimatedCost}
-              setEstimatedCost={setEstimatedCost}
-              comments={comments}
-              setComments={setComments}
-            />
-          )}
+          <Label>Estimated Cost:</Label>
+          <input
+            type="number"
+            value={estimatedCost}
+            onChange={(e) => setEstimatedCost(e.target.value)}
+            placeholder="Enter estimated cost"
+            style={{
+              border: "1px solid #ccc",
+              borderRadius: 4,
+              padding: 10,
+              fontSize: 14,
+              maxWidth: 300,
+            }}
+          />
         </Section>
 
         <Section>
@@ -733,9 +726,7 @@ function App() {
           onChatGptResponse={setChatGptResponse}
           vinResponse={vinResponse}
           techDetailsData={techDetailsData}
-          expertRecommendations={expertRecommendations}
           estimatedCost={estimatedCost}
-          comments={comments}
           engineVolume={engineVolume}
           bodyType={bodyType}
         />

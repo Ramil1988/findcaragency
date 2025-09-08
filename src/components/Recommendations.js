@@ -1,24 +1,9 @@
 import React from "react";
 import styled from "styled-components";
 
-const Recommendations = ({
-  expertRecommendations,
-  setExpertRecommendations,
-  estimatedCost,
-  setEstimatedCost,
-  comments,
-  setComments,
-}) => (
+// Retained as a minimal component in case of imports elsewhere.
+const Recommendations = ({ estimatedCost, setEstimatedCost }) => (
   <RecommendationsContainer>
-    <InputWrapper>
-      <label>Recommendations:</label>
-      <textarea
-        value={expertRecommendations}
-        onChange={(e) => setExpertRecommendations(e.target.value)}
-        rows="4"
-        placeholder="Enter recommendations"
-      />
-    </InputWrapper>
     <InputWrapper>
       <label>Estimated Cost:</label>
       <input
@@ -26,15 +11,6 @@ const Recommendations = ({
         value={estimatedCost}
         onChange={(e) => setEstimatedCost(e.target.value)}
         placeholder="Enter estimated cost"
-      />
-    </InputWrapper>
-    <InputWrapper>
-      <label>Additional Comments:</label>
-      <textarea
-        value={comments}
-        onChange={(e) => setComments(e.target.value)}
-        rows="4"
-        placeholder="Enter additional comments"
       />
     </InputWrapper>
   </RecommendationsContainer>
