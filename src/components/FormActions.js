@@ -40,17 +40,23 @@ const FormActions = ({
         serviceEvents: [],
         recalls: [],
         otherNotable: [],
+        highestOdometer: null,
       };
 
       if (!raw) return result;
 
-      const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      const normalized = raw
+        .replace(/[•◆◦·]/g, "\n• ")
+        .replace(/\u00A0/g, " ")
+        .replace(/\s+\n/g, "\n")
+        .replace(/\n{2,}/g, "\n");
+      const lines = normalized.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
       const uniqPush = (arr, val) => {
         if (!val) return;
         if (!arr.includes(val)) arr.push(val);
       };
 
-      // Note: keep case-sensitive scanning for better capture; avoid unused vars.
+      // Note: keep case-sensitive scanning for better capture.
       if (/(no\s+police[- ]reported\s+accidents|no\s+accidents\s+reported)/i.test(raw)) {
         result.accidentsMentioned = false;
       } else if (/(accident|collision|damage\s+record)/i.test(raw)) {
@@ -58,21 +64,23 @@ const FormActions = ({
       }
 
       // Branding / title status
-      const brandingMatches = raw.match(/\b(Normal|Salvage|Rebuilt|Rebuild|Lemon|Branded)\b/gi);
+      const brandingMatches = raw.match(/\b(Normal|Salvage|Rebuilt|Rebuild|Non[- ]repairable|Stolen|Branded|Moved\s+branding)\b/gi);
       if (brandingMatches) brandingMatches.forEach((b) => uniqPush(result.branding, b));
 
       // Registrations / locations
       lines.forEach((line) => {
-        if (/registered|registration|province of|state of/i.test(line)) {
+        if (/registered|registration|province of|state of|following locations/i.test(line)) {
           uniqPush(result.registrations, line);
         }
       });
 
-      // Damage records with amounts/dates (very heuristic)
+      // Damage records with amounts/dates (more targeted)
+      const moneyRe = /\$\s?\d{1,3}(?:[,.]\d{3})*(?:\.\d{2})?/;
+      const dateRe = /\b(\d{4}[-/ ]\d{1,2}[-/ ]\d{1,2}|\d{4}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s+\d{1,2}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}|\d{4}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*)\b/i;
       lines.forEach((line) => {
-        if (/damage|record|glass|claim|estimate/i.test(line)) {
-          const amount = line.match(/\$\s?\d{2,3}(?:[,.]\d{3})*(?:\.\d{2})?/);
-          const date = line.match(/\b(\d{4}[-/ ]\d{1,2}[-/ ]\d{1,2}|\d{4}\s+[A-Za-z]{3,9}\s+\d{1,2}|[A-Za-z]{3,9}\s+\d{1,2},?\s+\d{4}|\d{4}\s+[A-Za-z]{3,9})\b/);
+        if (/(other\s+damage\s+records|damage|glass\s+record|claim|estimate)/i.test(line)) {
+          const amount = line.match(moneyRe);
+          const date = line.match(dateRe);
           result.damageRecords.push({
             date: date ? date[0] : undefined,
             amount: amount ? amount[0] : undefined,
@@ -87,6 +95,17 @@ const FormActions = ({
           uniqPush(result.odometerEvents, line);
         }
       });
+      // Calculate highest odometer reading
+      const odoNums = [];
+      const numberWithUnits = /(\d{1,3}(?:[ ,]\d{3})+|\d{4,})(?=\s?(km|kilometers|miles|mi)\b)/gi;
+      let m;
+      while ((m = numberWithUnits.exec(normalized)) !== null) {
+        const n = parseInt(m[1].replace(/[ ,]/g, ""), 10);
+        if (!Number.isNaN(n)) odoNums.push(n);
+      }
+      if (odoNums.length) {
+        result.highestOdometer = Math.max(...odoNums);
+      }
 
       // Service events
       lines.forEach((line) => {
@@ -227,6 +246,8 @@ Report analysis requirement:
 
  Final section:
  - Add "Actionable Recommendations:" that combine (a) inspection flags and (b) report findings into clear next steps for the buyer, prioritized (e.g., safety-critical first, then preventative, then paperwork like confirming branding/recalls).
+ - If 'reportExtract.highestOdometer' exists and 'vehicle.mileage' is provided, compare them. If they differ by more than ~10%, call this out and recommend verification (e.g., maintenance receipts, recent service report).
+ - When listing damage records, include dates and amounts if parsed.
 
 Data:\n${JSON.stringify(structured, null, 2)}\n`;
 
