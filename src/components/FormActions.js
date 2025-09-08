@@ -29,6 +29,91 @@ const FormActions = ({
       return responseText.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
     };
 
+    // Lightly preprocess the free-form report text to extract key facts
+    const extractFromReport = (raw) => {
+      const result = {
+        accidentsMentioned: null,
+        branding: [],
+        damageRecords: [], // {date?, amount?, details}
+        registrations: [],
+        odometerEvents: [],
+        serviceEvents: [],
+        recalls: [],
+        otherNotable: [],
+      };
+
+      if (!raw) return result;
+
+      const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      const uniqPush = (arr, val) => {
+        if (!val) return;
+        if (!arr.includes(val)) arr.push(val);
+      };
+
+      // Note: keep case-sensitive scanning for better capture; avoid unused vars.
+      if (/(no\s+police[- ]reported\s+accidents|no\s+accidents\s+reported)/i.test(raw)) {
+        result.accidentsMentioned = false;
+      } else if (/(accident|collision|damage\s+record)/i.test(raw)) {
+        result.accidentsMentioned = true;
+      }
+
+      // Branding / title status
+      const brandingMatches = raw.match(/\b(Normal|Salvage|Rebuilt|Rebuild|Lemon|Branded)\b/gi);
+      if (brandingMatches) brandingMatches.forEach((b) => uniqPush(result.branding, b));
+
+      // Registrations / locations
+      lines.forEach((line) => {
+        if (/registered|registration|province of|state of/i.test(line)) {
+          uniqPush(result.registrations, line);
+        }
+      });
+
+      // Damage records with amounts/dates (very heuristic)
+      lines.forEach((line) => {
+        if (/damage|record|glass|claim|estimate/i.test(line)) {
+          const amount = line.match(/\$\s?\d{2,3}(?:[,.]\d{3})*(?:\.\d{2})?/);
+          const date = line.match(/\b(\d{4}[-/ ]\d{1,2}[-/ ]\d{1,2}|\d{4}\s+[A-Za-z]{3,9}\s+\d{1,2}|[A-Za-z]{3,9}\s+\d{1,2},?\s+\d{4}|\d{4}\s+[A-Za-z]{3,9})\b/);
+          result.damageRecords.push({
+            date: date ? date[0] : undefined,
+            amount: amount ? amount[0] : undefined,
+            details: line,
+          });
+        }
+      });
+
+      // Odometer readings
+      lines.forEach((line) => {
+        if (/odometer|km\b|kilometers|miles|mi\b/i.test(line)) {
+          uniqPush(result.odometerEvents, line);
+        }
+      });
+
+      // Service events
+      lines.forEach((line) => {
+        if (/service|serviced|inspection|alignment|oil|tire|tyre|brake|washed|detailed|condition\s+and\s+pressure\s+checked/i.test(line)) {
+          uniqPush(result.serviceEvents, line);
+        }
+      });
+
+      // Recalls
+      lines.forEach((line) => {
+        if (/recall/i.test(line)) {
+          uniqPush(result.recalls, line);
+        }
+      });
+
+      // Other notable if line mentions owners, warranty, theft, flood
+      lines.forEach((line) => {
+        if (/(owner|owners|warranty|theft|stolen|flood|hail)/i.test(line)) {
+          uniqPush(result.otherNotable, line);
+        }
+      });
+
+      return result;
+    };
+
+    const reportExtract = extractFromReport(relevantReport || "");
+
     // Build a compact data summary from the UI state for the model
     const labels = {
       intExt: {
@@ -118,12 +203,13 @@ const FormActions = ({
       // Provide a generous slice so the model can summarize the report text.
       // Keep some cap to avoid extremely large payloads.
       reportText: (relevantReport || "").slice(0, 12000),
+      reportExtract,
     };
 
     const prompt = `You are a vehicle inspection assistant. Create a concise, customer-friendly summary from the provided structured data.
 
 Rules:
-- Start with a 1–2 sentence overview.
+- Start with a brief section titled "Overall Summary:" (2–4 sentences) combining the inspection findings and the attached report. Call out major risks, positives, and any discrepancies between UI findings and the report.
 - Then add sections whose titles end with a colon, e.g. "Immediate Concerns:", "Items to Monitor:", "Tires & Brakes:", "Recommendations:", "Notes:".
 - Use bullet points starting with "- " under each section.
 - Prioritize items in 'flags.immediate' first, then 'flags.attention'.
@@ -134,10 +220,13 @@ Rules:
 
 Report analysis requirement:
 - The field 'reportText' contains text extracted from an attached report (e.g., CARFAX or service records). Read it and add a dedicated section titled "Report Summary:".
-- In "Report Summary:", include only facts present in 'reportText' such as: accident history, damage records (dates/amounts), branding/status (e.g., Normal/Salvage/Rebuilt), registration locations and dates, odometer readings/milestones, service events performed, recalls, warranty or ownership notes.
+- In "Report Summary:", use both 'reportExtract' and 'reportText'. Include only facts such as: accident history, damage records (dates/amounts), branding/status (e.g., Normal/Salvage/Rebuilt), registration locations and dates, odometer readings/milestones, service events performed, recalls, warranty or ownership notes.
 - Explicitly state positives like "No police-reported accidents" if the report says so.
 - Do not speculate; if a detail is unclear or not present, omit it.
 - If 'reportText' is empty, omit the "Report Summary:" section.
+
+ Final section:
+ - Add "Actionable Recommendations:" that combine (a) inspection flags and (b) report findings into clear next steps for the buyer, prioritized (e.g., safety-critical first, then preventative, then paperwork like confirming branding/recalls).
 
 Data:\n${JSON.stringify(structured, null, 2)}\n`;
 
