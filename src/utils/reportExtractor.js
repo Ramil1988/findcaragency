@@ -121,7 +121,7 @@ export const extractReport = (raw) => {
     }
   });
 
-  const dateToken = /\b(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})\b/;
+  const dateToken = /\b(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})\b/;
   const extractDate = (s) => {
     const dm = s.match(dateToken);
     return dm ? dm[1] : null;
