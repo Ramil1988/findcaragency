@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import styled from "styled-components";
 import InspectorDetails from "./components/InspectorDetails";
 import CarDetails from "./components/CarDetails";
@@ -7,6 +7,7 @@ import Recommendations from "./components/Recommendations";
 import FormActions from "./components/FormActions";
 import * as pdfjsLib from "pdfjs-dist/build/pdf";
 import { jsPDF } from "jspdf";
+import { extractReport } from "./utils/reportExtractor";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `${process.env.PUBLIC_URL}/pdf.worker.mjs`;
 
@@ -34,6 +35,11 @@ function App() {
   const [chatGptResponse, setChatGptResponse] = useState("");
 
   const [vinResponse, setVinResponse] = useState(null);
+  // Parse report text for quick preview chips
+  const parsedReport = useMemo(
+    () => extractReport(relevantReport || ""),
+    [relevantReport]
+  );
 
   const parsePdf = async (e) => {
     const file = e.target.files[0];
@@ -642,6 +648,60 @@ function App() {
             value={relevantReport}
             onChange={(e) => setRelevantReport(e.target.value)}
           />
+          <ReportPreviewContainer>
+            <PreviewTitle>Report Insights (parsed)</PreviewTitle>
+            <Chips>
+              {parsedReport.accidentsMentioned === false && (
+                <Chip positive>No police-reported accidents</Chip>
+              )}
+              {parsedReport.accidentsMentioned === true && (
+                <Chip warning>Accident/Damage keywords present</Chip>
+              )}
+              {parsedReport.highestOdometer && (
+                <Chip>
+                  Highest odometer: {parsedReport.highestOdometer.toLocaleString()}
+                </Chip>
+              )}
+              {parsedReport.branding.slice(0, 3).map((b, i) => (
+                <Chip key={`brand-${i}`}>{b}</Chip>
+              ))}
+              {parsedReport.recalls.length > 0 && (
+                <Chip warning>Recalls mentioned</Chip>
+              )}
+            </Chips>
+            {(parsedReport.damageRecords.length > 0 || parsedReport.registrations.length > 0 || parsedReport.serviceEvents.length > 0) && (
+              <SmallLists>
+                {parsedReport.damageRecords.length > 0 && (
+                  <div>
+                    <SmallHeading>Damage Records</SmallHeading>
+                    {parsedReport.damageRecords.slice(0, 3).map((r, idx) => (
+                      <SmallItem key={`dm-${idx}`}>
+                        {r.date ? `${r.date}: ` : ""}
+                        {r.amount ? `${r.amount} — ` : ""}
+                        {r.details}
+                      </SmallItem>
+                    ))}
+                  </div>
+                )}
+                {parsedReport.registrations.length > 0 && (
+                  <div>
+                    <SmallHeading>Registrations</SmallHeading>
+                    {parsedReport.registrations.slice(0, 3).map((l, idx) => (
+                      <SmallItem key={`reg-${idx}`}>{l}</SmallItem>
+                    ))}
+                  </div>
+                )}
+                {parsedReport.serviceEvents.length > 0 && (
+                  <div>
+                    <SmallHeading>Service Events</SmallHeading>
+                    {parsedReport.serviceEvents.slice(0, 3).map((l, idx) => (
+                      <SmallItem key={`svc-${idx}`}>{l}</SmallItem>
+                    ))}
+                  </div>
+                )}
+              </SmallLists>
+            )}
+          </ReportPreviewContainer>
         </Section>
         <Section>
           <SectionHeader>
@@ -879,4 +939,58 @@ const CollapseButton = styled.button.attrs({
   @media (max-width: 600px) {
     font-size: 13px;
   }
+`;
+
+// Report preview styles
+const ReportPreviewContainer = styled.div`
+  margin-top: 10px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fafafa;
+`;
+
+const PreviewTitle = styled.div`
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #444;
+`;
+
+const Chips = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+`;
+
+const Chip = styled.span`
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 16px;
+  font-size: 12px;
+  color: ${(p) => (p.positive ? "#155724" : p.warning ? "#856404" : "#333")};
+  background: ${(p) => (p.positive ? "#d4edda" : p.warning ? "#fff3cd" : "#e9ecef")};
+  border: 1px solid ${(p) => (p.positive ? "#c3e6cb" : p.warning ? "#ffeeba" : "#dee2e6")};
+`;
+
+const SmallLists = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const SmallHeading = styled.div`
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 6px;
+`;
+
+const SmallItem = styled.div`
+  font-size: 13px;
+  color: #555;
+  margin: 4px 0;
 `;
