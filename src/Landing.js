@@ -19,6 +19,32 @@ const Landing = () => {
         </Actions>
       </Hero>
 
+      <HowItWorks>
+        <HowTitle>How It Works</HowTitle>
+        <Steps>
+          <Step>
+            <Badge>1</Badge>
+            <span>Enter VIN or vehicle details</span>
+          </Step>
+          <Step>
+            <Badge>2</Badge>
+            <span>Complete the Technical Checklist</span>
+          </Step>
+          <Step>
+            <Badge>3</Badge>
+            <span>Attach a report (e.g., CARFAX) for parsing</span>
+          </Step>
+          <Step>
+            <Badge>4</Badge>
+            <span>Review AI summary and set estimated cost</span>
+          </Step>
+          <Step>
+            <Badge>5</Badge>
+            <span>Download the branded PDF report</span>
+          </Step>
+        </Steps>
+      </HowItWorks>
+
       <Features>
         <FeatureCard>
           <FeatureTitle>VIN Lookup</FeatureTitle>
@@ -187,6 +213,51 @@ const FeatureTitle = styled.h3`
 const FeatureText = styled.p`
   margin: 0;
   color: #666;
+`;
+
+const HowItWorks = styled.section`
+  max-width: 1100px;
+  margin: 0 auto 8px;
+  padding: 0 20px 8px;
+`;
+
+const HowTitle = styled.h3`
+  margin: 0 0 10px;
+  color: #444;
+`;
+
+const Steps = styled.div`
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const Step = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #555;
+`;
+
+const Badge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(90deg, #3498db, #8e44ad);
+  border-radius: 50%;
 `;
 
 const SampleSection = styled.section`
