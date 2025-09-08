@@ -115,7 +115,9 @@ const FormActions = ({
       recommendations: { expertRecommendations, estimatedCost },
       comments,
       vinResponse,
-      extractedReportSnippet: (relevantReport || "").slice(0, 2000),
+      // Provide a generous slice so the model can summarize the report text.
+      // Keep some cap to avoid extremely large payloads.
+      reportText: (relevantReport || "").slice(0, 12000),
     };
 
     const prompt = `You are a vehicle inspection assistant. Create a concise, customer-friendly summary from the provided structured data.
@@ -129,6 +131,13 @@ Rules:
 - If 'tireNotes' is non-empty, include them as bullets.
 - If 'recommendations' or 'comments' are provided, summarize them.
 - Be factual and avoid duplication with the same wording.
+
+Report analysis requirement:
+- The field 'reportText' contains text extracted from an attached report (e.g., CARFAX or service records). Read it and add a dedicated section titled "Report Summary:".
+- In "Report Summary:", include only facts present in 'reportText' such as: accident history, damage records (dates/amounts), branding/status (e.g., Normal/Salvage/Rebuilt), registration locations and dates, odometer readings/milestones, service events performed, recalls, warranty or ownership notes.
+- Explicitly state positives like "No police-reported accidents" if the report says so.
+- Do not speculate; if a detail is unclear or not present, omit it.
+- If 'reportText' is empty, omit the "Report Summary:" section.
 
 Data:\n${JSON.stringify(structured, null, 2)}\n`;
 
