@@ -21,6 +21,9 @@ export const extractReport = (raw) => {
     structuralDamage: null,
     airbagDeployment: null,
     odometerRollback: null,
+    // Event summaries
+    registrationSummaries: [], // [{date, summary}]
+    serviceSummaries: [], // [{date, summary}]
   };
 
   if (!raw) return result;
@@ -82,10 +85,25 @@ export const extractReport = (raw) => {
       result.detailedRecordsCount = parseInt(det[1], 10);
     }
     // Last reported odometer
-    const lastOdo = line.match(/last\s+reported\s+odometer\s+(?:reading\s*)?(\d{1,3}(?:[,\s]\d{3})+|\d{4,})/i);
-    if (lastOdo) {
-      const n = parseInt(lastOdo[1].replace(/[ ,]/g, ''), 10);
-      if (!Number.isNaN(n)) result.lastReportedOdometer = n;
+    // Try to capture last reported odometer when number appears after the phrase
+    let candidates = [];
+    let m;
+    const afterRe = /last\s+reported\s+odometer\s+(?:reading\s*)?(?:[: ]+)?(\d{1,3}(?:[,\s]\d{3})+|\d{5,})/gi;
+    while ((m = afterRe.exec(line)) !== null) {
+      const n = parseInt(m[1].replace(/[ ,]/g, ''), 10);
+      if (!Number.isNaN(n)) candidates.push(n);
+    }
+    // Also handle when number precedes the phrase (common in some extractions)
+    const beforeRe = /(\d{1,3}(?:[,\s]\d{3})+|\d{5,})\s+last\s+reported\s+odometer\s+(?:reading)?/gi;
+    while ((m = beforeRe.exec(line)) !== null) {
+      const n = parseInt(m[1].replace(/[ ,]/g, ''), 10);
+      if (!Number.isNaN(n)) candidates.push(n);
+    }
+    if (candidates.length) {
+      const max = Math.max(...candidates);
+      if (!result.lastReportedOdometer || max > result.lastReportedOdometer) {
+        result.lastReportedOdometer = max;
+      }
     }
 
     // Summary negatives
@@ -103,13 +121,64 @@ export const extractReport = (raw) => {
     }
   });
 
+  const dateToken = /\b(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})\b/;
+  const extractDate = (s) => {
+    const dm = s.match(dateToken);
+    return dm ? dm[1] : null;
+  };
+  const regPhrases = [
+    /registration\s+issued|registration\s+renewed|registration\s+issued\s+or\s+renewed/i,
+    /new\s+owner\s+reported/i,
+    /first\s+owner\s+reported/i,
+    /registered\s+as\s+personal\s+vehicle/i,
+    /motor\s+vehicle\s+dept/i,
+  ];
+  const svcPhrases = [
+    /vehicle\s+serviced/i,
+    /alignment\s+checked|alignment\s+performed/i,
+    /emissions|safety\s+inspection\s+performed|inspection\s+performed/i,
+    /oil\s+(?:and\s+filter\s+)?changed/i,
+    /tire[s]?\s+(?:mounted|rotated|condition|pressure\s+checked)/i,
+    /undercoating|rustproof/i,
+    /washed|detailed|interior\s+cleaned|fabric\s+protection/i,
+    /brake[s]?\s+checked/i,
+  ];
+
+  const summarize = (s, phrases) => {
+    const hits = [];
+    for (const re of phrases) {
+      const m2 = s.match(re);
+      if (m2) {
+        hits.push(m2[0]
+          .replace(/\s+/g, ' ')
+          .replace(/\bregistration\b/gi, 'Registration')
+          .replace(/\bissued\b/gi, 'issued')
+          .replace(/\brenewed\b/gi, 'renewed')
+          .replace(/\bperformed\b/gi, 'performed'));
+      }
+    }
+    // Deduplicate small list and cap length
+    return Array.from(new Set(hits)).slice(0, 4).join(' · ');
+  };
+
+  const pushEvent = (arr, date, summary) => {
+    if (!summary) return;
+    const key = `${date || ''}|${summary}`;
+    if (!arr.some((it) => `${it.date || ''}|${it.summary}` === key)) {
+      arr.push({ date, summary });
+    }
+  };
+
   lines.forEach((line) => {
     if (isGeneric(line)) return;
-    if (/registered|registration\s+issued|province of|state of|first owner reported/i.test(line)) {
-      // Prefer lines that look like event records (often start with a date)
-      if (/\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\b/i.test(line) || /motor vehicle dept|registration/i.test(line)) {
-        uniqPush(result.registrations, line);
-      }
+    const date = extractDate(line);
+    const regSummary = summarize(line, regPhrases);
+    if (regSummary) {
+      pushEvent(result.registrationSummaries, date, regSummary);
+    }
+    const svcSummary = summarize(line, svcPhrases);
+    if (svcSummary) {
+      pushEvent(result.serviceSummaries, date, svcSummary);
     }
   });
 

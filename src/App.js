@@ -689,7 +689,7 @@ function App() {
               {parsedReport.airbagDeployment === false && <Chip positive>No airbag deployment</Chip>}
               {parsedReport.odometerRollback === false && <Chip positive>Odometer check: OK</Chip>}
             </Chips>
-            {(parsedReport.damageRecords.length > 0 || parsedReport.registrations.length > 0 || parsedReport.serviceEvents.length > 0) && (
+            {(parsedReport.damageRecords.length > 0 || (parsedReport.registrationSummaries && parsedReport.registrationSummaries.length > 0) || (parsedReport.serviceSummaries && parsedReport.serviceSummaries.length > 0)) && (
               <SmallLists>
                 {parsedReport.damageRecords.length > 0 && (
                   <div>
@@ -703,19 +703,25 @@ function App() {
                     ))}
                   </div>
                 )}
-                {parsedReport.registrations.length > 0 && (
+                {parsedReport.registrationSummaries && parsedReport.registrationSummaries.length > 0 && (
                   <div>
                     <SmallHeading>Registrations</SmallHeading>
-                    {parsedReport.registrations.slice(0, 3).map((l, idx) => (
-                      <SmallItem key={`reg-${idx}`}>{l}</SmallItem>
+                    {parsedReport.registrationSummaries.slice(0, 5).map((ev, idx) => (
+                      <SmallItem key={`reg-${idx}`}>
+                        {ev.date ? `${ev.date} — ` : ""}
+                        {ev.summary}
+                      </SmallItem>
                     ))}
                   </div>
                 )}
-                {parsedReport.serviceEvents.length > 0 && (
+                {parsedReport.serviceSummaries && parsedReport.serviceSummaries.length > 0 && (
                   <div>
                     <SmallHeading>Service Events</SmallHeading>
-                    {parsedReport.serviceEvents.slice(0, 3).map((l, idx) => (
-                      <SmallItem key={`svc-${idx}`}>{l}</SmallItem>
+                    {parsedReport.serviceSummaries.slice(0, 5).map((ev, idx) => (
+                      <SmallItem key={`svc-${idx}`}>
+                        {ev.date ? `${ev.date} — ` : ""}
+                        {ev.summary}
+                      </SmallItem>
                     ))}
                   </div>
                 )}
