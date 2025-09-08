@@ -661,6 +661,11 @@ function App() {
                   Highest odometer: {parsedReport.highestOdometer.toLocaleString()}
                 </Chip>
               )}
+              {parsedReport.lastReportedOdometer && (
+                <Chip>
+                  Last odo: {parsedReport.lastReportedOdometer.toLocaleString()}
+                </Chip>
+              )}
               {parsedReport.branding.slice(0, 3).map((b, i) => (
                 <Chip key={`brand-${i}`}>{b}</Chip>
               ))}
@@ -673,6 +678,16 @@ function App() {
               {parsedReport.recallsOpen === true && (
                 <Chip warning>Open recall mentioned</Chip>
               )}
+              {typeof parsedReport.serviceHistoryCount === 'number' && (
+                <Chip>Service records: {parsedReport.serviceHistoryCount}</Chip>
+              )}
+              {typeof parsedReport.detailedRecordsCount === 'number' && (
+                <Chip>Detailed records: {parsedReport.detailedRecordsCount}</Chip>
+              )}
+              {parsedReport.totalLoss === false && <Chip positive>No total loss</Chip>}
+              {parsedReport.structuralDamage === false && <Chip positive>No structural damage</Chip>}
+              {parsedReport.airbagDeployment === false && <Chip positive>No airbag deployment</Chip>}
+              {parsedReport.odometerRollback === false && <Chip positive>Odometer check: OK</Chip>}
             </Chips>
             {(parsedReport.damageRecords.length > 0 || parsedReport.registrations.length > 0 || parsedReport.serviceEvents.length > 0) && (
               <SmallLists>

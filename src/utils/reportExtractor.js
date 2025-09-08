@@ -13,6 +13,14 @@ export const extractReport = (raw) => {
     theftMentioned: null, // null | false | true
     movedBranding: false,
     recallsOpen: null, // null | false (none) | true (open/mentioned)
+    // Additional summary signals
+    serviceHistoryCount: null,
+    detailedRecordsCount: null,
+    lastReportedOdometer: null,
+    totalLoss: null, // false = none reported; true = mentioned
+    structuralDamage: null,
+    airbagDeployment: null,
+    odometerRollback: null,
   };
 
   if (!raw) return result;
@@ -60,6 +68,40 @@ export const extractReport = (raw) => {
 
   // Helper to skip generic lines not specific to vehicle events
   const isGeneric = (s) => /vehicle history report|additional history|glossary|help center|about carfax|guaranteed|warranty|follow us|view terms|view cert/i.test(s);
+
+  // High-level counts and statements commonly present in CARFAX summaries
+  lines.forEach((line) => {
+    // Service history records count
+    const svc = line.match(/(\d{1,3})\s+service\s+history\s+records?/i);
+    if (svc) {
+      result.serviceHistoryCount = parseInt(svc[1], 10);
+    }
+    // Detailed records available
+    const det = line.match(/(\d{1,4})\s+detailed\s+records?\s+available/i);
+    if (det) {
+      result.detailedRecordsCount = parseInt(det[1], 10);
+    }
+    // Last reported odometer
+    const lastOdo = line.match(/last\s+reported\s+odometer\s+(?:reading\s*)?(\d{1,3}(?:[,\s]\d{3})+|\d{4,})/i);
+    if (lastOdo) {
+      const n = parseInt(lastOdo[1].replace(/[ ,]/g, ''), 10);
+      if (!Number.isNaN(n)) result.lastReportedOdometer = n;
+    }
+
+    // Summary negatives
+    if (/no\s+total\s+loss\s+reported/i.test(line)) result.totalLoss = false;
+    if (/no\s+structural\s+damage\s+reported/i.test(line)) result.structuralDamage = false;
+    if (/no\s+airbag\s+deployment\s+reported/i.test(line)) result.airbagDeployment = false;
+    if (/no\s+indication\s+of\s+an?\s+odometer\s+rollback/i.test(line)) result.odometerRollback = false;
+
+    // Summary positives (be careful; only set true if not already false)
+    if (/total\s+loss/i.test(line) && !/no\s+total\s+loss/i.test(line)) result.totalLoss = result.totalLoss === false ? false : true;
+    if (/structural\s+damage/i.test(line) && !/no\s+structural\s+damage/i.test(line)) result.structuralDamage = result.structuralDamage === false ? false : true;
+    if (/airbag\s+deployment/i.test(line) && !/no\s+airbag\s+deployment/i.test(line)) result.airbagDeployment = result.airbagDeployment === false ? false : true;
+    if (/odometer\s+rollback|not\s+actual\s+mileage|exceeds\s+mechanical\s+limits/i.test(line) && !/no\s+indication\s+of\s+an?\s+odometer\s+rollback/i.test(line)) {
+      result.odometerRollback = result.odometerRollback === false ? false : true;
+    }
+  });
 
   lines.forEach((line) => {
     if (isGeneric(line)) return;
