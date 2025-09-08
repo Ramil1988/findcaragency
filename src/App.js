@@ -645,10 +645,10 @@ function App() {
             <PreviewTitle>Report Insights (parsed)</PreviewTitle>
             <Chips>
               {parsedReport.accidentsMentioned === false && (
-                <Chip positive>No police-reported accidents</Chip>
+                <Chip positive>No accidents/damage reported</Chip>
               )}
               {parsedReport.accidentsMentioned === true && (
-                <Chip warning>Accident/Damage keywords present</Chip>
+                <Chip warning>Accident or damage reported</Chip>
               )}
               {parsedReport.theftMentioned === false && (
                 <Chip positive>No theft declared</Chip>
@@ -666,7 +666,7 @@ function App() {
                   Last odo: {parsedReport.lastReportedOdometer.toLocaleString()}
                 </Chip>
               )}
-              {parsedReport.branding.slice(0, 3).map((b, i) => (
+              {parsedReport.branding.filter((s) => !/^normal$/i.test(s)).slice(0, 3).map((b, i) => (
                 <Chip key={`brand-${i}`}>{b}</Chip>
               ))}
               {parsedReport.movedBranding && (
@@ -689,44 +689,7 @@ function App() {
               {parsedReport.airbagDeployment === false && <Chip positive>No airbag deployment</Chip>}
               {parsedReport.odometerRollback === false && <Chip positive>Odometer check: OK</Chip>}
             </Chips>
-            {(parsedReport.damageRecords.length > 0 || (parsedReport.registrationSummaries && parsedReport.registrationSummaries.length > 0) || (parsedReport.serviceSummaries && parsedReport.serviceSummaries.length > 0)) && (
-              <SmallLists>
-                {parsedReport.damageRecords.length > 0 && (
-                  <div>
-                    <SmallHeading>Damage Records</SmallHeading>
-                    {parsedReport.damageRecords.slice(0, 3).map((r, idx) => (
-                      <SmallItem key={`dm-${idx}`}>
-                        {r.date ? `${r.date}: ` : ""}
-                        {r.amount ? `${r.amount} — ` : ""}
-                        {r.details}
-                      </SmallItem>
-                    ))}
-                  </div>
-                )}
-                {parsedReport.registrationSummaries && parsedReport.registrationSummaries.length > 0 && (
-                  <div>
-                    <SmallHeading>Registrations</SmallHeading>
-                    {parsedReport.registrationSummaries.slice(0, 5).map((ev, idx) => (
-                      <SmallItem key={`reg-${idx}`}>
-                        {ev.date ? `${ev.date} — ` : ""}
-                        {ev.summary}
-                      </SmallItem>
-                    ))}
-                  </div>
-                )}
-                {parsedReport.serviceSummaries && parsedReport.serviceSummaries.length > 0 && (
-                  <div>
-                    <SmallHeading>Service Events</SmallHeading>
-                    {parsedReport.serviceSummaries.slice(0, 5).map((ev, idx) => (
-                      <SmallItem key={`svc-${idx}`}>
-                        {ev.date ? `${ev.date} — ` : ""}
-                        {ev.summary}
-                      </SmallItem>
-                    ))}
-                  </div>
-                )}
-              </SmallLists>
-            )}
+            {/* Hide verbose lists; show only key chips as requested */}
           </ReportPreviewContainer>
         </Section>
         <Section>
@@ -997,24 +960,4 @@ const Chip = styled.span`
   border: 1px solid ${(p) => (p.positive ? "#c3e6cb" : p.warning ? "#ffeeba" : "#dee2e6")};
 `;
 
-const SmallLists = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const SmallHeading = styled.div`
-  font-weight: 600;
-  color: #555;
-  margin-bottom: 6px;
-`;
-
-const SmallItem = styled.div`
-  font-size: 13px;
-  color: #555;
-  margin: 4px 0;
-`;
+// Removed verbose list styles; keeping chips-only preview

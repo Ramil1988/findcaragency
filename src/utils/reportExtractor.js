@@ -40,12 +40,12 @@ export const extractReport = (raw) => {
     if (!arr.includes(val)) arr.push(val);
   };
 
-  // Accident/damage detection (negation-aware)
+  // Accident/damage detection (stricter, negation-aware)
   const accidentNegRe = /no\s+(?:police[- ]reported\s+)?accidents?(?:\s+or\s+damage)?\s+reported/i;
-  const accidentPosRe = /\b(accident|collision|damage\s+record|reported\s+damage)\b/i;
+  const accidentPosRe = /(accident\s+reported|collision\s+reported|damage\s+reported|other\s+damage\s+records)/i;
   if (lines.some((l) => accidentNegRe.test(l))) {
     result.accidentsMentioned = false;
-  } else if (lines.some((l) => accidentPosRe.test(l) && !/^no\b/i.test(l))) {
+  } else if (lines.some((l) => accidentPosRe.test(l))) {
     result.accidentsMentioned = true;
   }
 
