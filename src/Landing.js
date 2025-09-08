@@ -229,9 +229,13 @@ const HowTitle = styled.h3`
 const Steps = styled.div`
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
+  gap: 12px;
 
-  @media (max-width: 900px) {
+  @media (max-width: 1100px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (max-width: 700px) {
     grid-template-columns: 1fr;
   }
 `;
@@ -239,11 +243,11 @@ const Steps = styled.div`
 const Step = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   background: #fff;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  padding: 10px 12px;
+  padding: 12px 14px;
   color: #555;
 `;
 
@@ -251,13 +255,20 @@ const Badge = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  font-size: 12px;
+  width: 26px;
+  height: 26px;
+  font-size: 14px;
   font-weight: 700;
   color: #fff;
   background: linear-gradient(90deg, #3498db, #8e44ad);
   border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+
+  @media (max-width: 600px) {
+    width: 24px;
+    height: 24px;
+    font-size: 13px;
+  }
 `;
 
 const SampleSection = styled.section`
