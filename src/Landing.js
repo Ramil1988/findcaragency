@@ -10,6 +10,9 @@ const Landing = () => {
         <Tagline>Streamlined vehicle inspections and professional PDF reports.</Tagline>
         <Actions>
           <PrimaryButton as="a" href="#app">Try the App</PrimaryButton>
+          <SecondaryLink href="/Car_Inspection_Report_Hyundai Elantra_2014.pdf" target="_blank" rel="noreferrer">
+            View Sample Report (PDF)
+          </SecondaryLink>
           <SecondaryLink href="https://github.com/Ramil1988/findcaragency" target="_blank" rel="noreferrer">
             View on GitHub
           </SecondaryLink>
@@ -29,7 +32,37 @@ const Landing = () => {
           <FeatureTitle>PDF Export</FeatureTitle>
           <FeatureText>One‑click report generation with your branding.</FeatureText>
         </FeatureCard>
+        <FeatureCard>
+          <FeatureTitle>Report Parsing</FeatureTitle>
+          <FeatureText>Attach a CARFAX/service report; key facts are extracted and summarized.</FeatureText>
+        </FeatureCard>
+        <FeatureCard>
+          <FeatureTitle>AI Summary</FeatureTitle>
+          <FeatureText>Concise overview + actionable recommendations based on inspection and report.</FeatureText>
+        </FeatureCard>
+        <FeatureCard>
+          <FeatureTitle>Mobile‑Friendly</FeatureTitle>
+          <FeatureText>Responsive UI designed for use on phones and tablets.</FeatureText>
+        </FeatureCard>
       </Features>
+
+      <SampleSection>
+        <SampleHeader>Sample Report Preview</SampleHeader>
+        <SampleNote>
+          This preview shows the actual PDF the app generates. Open it in a new tab for full‑screen view.
+        </SampleNote>
+        <SampleFrame
+          data="/Car_Inspection_Report_Hyundai Elantra_2014.pdf"
+          type="application/pdf"
+          aria-label="Sample generated report"
+        >
+          <p>
+            Your browser can’t display PDFs here. You can
+            <a href="/Car_Inspection_Report_Hyundai Elantra_2014.pdf" target="_blank" rel="noreferrer"> open the sample report</a>
+            instead.
+          </p>
+        </SampleFrame>
+      </SampleSection>
 
       <Footer>
         <small>© {new Date().getFullYear()} Find Car Agency</small>
@@ -156,10 +189,38 @@ const FeatureText = styled.p`
   color: #666;
 `;
 
+const SampleSection = styled.section`
+  max-width: 1100px;
+  margin: 0 auto 24px;
+  padding: 0 20px;
+`;
+
+const SampleHeader = styled.h3`
+  margin: 10px 0 6px;
+  color: #444;
+`;
+
+const SampleNote = styled.p`
+  margin: 0 0 10px;
+  color: #666;
+  font-size: 14px;
+`;
+
+const SampleFrame = styled.object`
+  width: 100%;
+  height: 520px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fff;
+
+  @media (max-width: 600px) {
+    height: 380px;
+  }
+`;
+
 const Footer = styled.footer`
   border-top: 1px solid #eee;
   padding: 16px 20px;
   text-align: center;
   color: #777;
 `;
-

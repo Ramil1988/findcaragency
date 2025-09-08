@@ -540,8 +540,14 @@ function App() {
         }
       });
 
-      // Save the PDF
-      doc.save("Car_Inspection_Report.pdf");
+      // Save the PDF with vehicle info in the filename
+      const vehicleName = [carMake, carModel].filter(Boolean).join(" ").trim();
+      const yearPart = (year || "").toString().trim();
+      const nameParts = ["Car_Inspection_Report"];
+      if (vehicleName) nameParts.push(vehicleName);
+      if (yearPart) nameParts.push(yearPart);
+      const fileName = `${nameParts.join("_")}.pdf`;
+      doc.save(fileName);
     };
 
     img.onerror = () => {
