@@ -255,18 +255,18 @@ const Badge = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   font-size: 14px;
   font-weight: 700;
-  color: #fff;
-  background: linear-gradient(90deg, #3498db, #8e44ad);
-  border-radius: 50%;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  color: #34495e;
+  background: #fff;
+  border: 2px solid #d0d7de;
+  border-radius: 6px; /* square with slight rounding */
 
   @media (max-width: 600px) {
-    width: 24px;
-    height: 24px;
+    width: 26px;
+    height: 26px;
     font-size: 13px;
   }
 `;

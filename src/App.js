@@ -521,11 +521,11 @@ function App() {
         currentY += 5;
       }
 
-      // Estimated Cost (kept)
+      // Estimated Repair Cost (kept)
       addSpace(15);
-      addText("Estimated Cost", true, 16);
+      addText("Estimated Repair Cost", true, 16);
       if (estimatedCost) {
-        addText(`Estimated Cost: ${estimatedCost}`);
+        addText(`Estimated Repair Cost: ${estimatedCost}`);
       }
 
       // Generated AI Response section
@@ -619,9 +619,9 @@ function App() {
 
         <Section>
           <SectionHeader>
-            <SectionTitle>Estimated Cost</SectionTitle>
+            <SectionTitle>Estimated Repair Cost</SectionTitle>
           </SectionHeader>
-          <Label>Estimated Cost:</Label>
+          <Label>Estimated Repair Cost:</Label>
           <input
             type="number"
             value={estimatedCost}
