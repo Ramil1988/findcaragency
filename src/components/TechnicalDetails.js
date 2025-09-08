@@ -532,6 +532,8 @@ const LegendBar = styled.div`
   border-radius: 6px;
   background: #fafafa;
   margin-bottom: 6px;
+  flex-wrap: wrap;
+  row-gap: 8px;
 `;
 
 const LegendItem = styled.div`
@@ -539,6 +541,10 @@ const LegendItem = styled.div`
   align-items: center;
   gap: 8px;
   color: #444;
+
+  @media (max-width: 600px) {
+    font-size: 12px;
+  }
 `;
 
 const CheckboxLabel = styled.label`

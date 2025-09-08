@@ -693,6 +693,10 @@ const AppContainer = styled.div`
   padding: 20px;
   font-family: "Arial", sans-serif;
   background: #f8f9fa;
+
+  @media (max-width: 600px) {
+    padding: 12px;
+  }
 `;
 
 const Header = styled.h1`
@@ -706,10 +710,23 @@ const HeaderLogoContainer = styled.div`
   justify-content: space-between;
   align-items: center;
   background-color: #f8f9fa;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
 `;
 
 const Logo = styled.img`
-  height: 250px;
+  max-width: 100%;
+  height: auto;
+
+  @media (min-width: 769px) {
+    height: 250px;
+    width: auto;
+  }
 `;
 
 const Form = styled.form`
@@ -731,6 +748,12 @@ const SectionHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  @media (max-width: 600px) {
+    align-items: flex-start;
+  }
 `;
 
 const InputForPdf = styled.input.attrs({
@@ -794,6 +817,11 @@ const DownloadButtonContainer = styled.div`
   margin-bottom: 10px;
   display: flex;
   align-items: center;
+
+  @media (max-width: 768px) {
+    justify-content: center;
+    width: 100%;
+  }
 `;
 
 const DownloadButton = styled.button`
@@ -826,6 +854,12 @@ const DownloadButton = styled.button`
   span {
     font-size: 20px;
   }
+
+  @media (max-width: 768px) {
+    width: 100%;
+    font-size: 14px;
+    padding: 10px 16px;
+  }
 `;
 
 const CollapseButton = styled.button.attrs({
@@ -840,5 +874,9 @@ const CollapseButton = styled.button.attrs({
 
   &:hover {
     color: #0056b3;
+  }
+  
+  @media (max-width: 600px) {
+    font-size: 13px;
   }
 `;
