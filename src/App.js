@@ -650,6 +650,12 @@ function App() {
               {parsedReport.accidentsMentioned === true && (
                 <Chip warning>Accident/Damage keywords present</Chip>
               )}
+              {parsedReport.theftMentioned === false && (
+                <Chip positive>No theft declared</Chip>
+              )}
+              {parsedReport.theftMentioned === true && (
+                <Chip warning>Theft/stolen mention</Chip>
+              )}
               {parsedReport.highestOdometer && (
                 <Chip>
                   Highest odometer: {parsedReport.highestOdometer.toLocaleString()}
@@ -658,6 +664,9 @@ function App() {
               {parsedReport.branding.slice(0, 3).map((b, i) => (
                 <Chip key={`brand-${i}`}>{b}</Chip>
               ))}
+              {parsedReport.movedBranding && (
+                <Chip>Moved branding</Chip>
+              )}
               {parsedReport.recalls.length > 0 && (
                 <Chip warning>Recalls mentioned</Chip>
               )}

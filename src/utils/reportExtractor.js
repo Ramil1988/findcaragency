@@ -10,6 +10,8 @@ export const extractReport = (raw) => {
     recalls: [],
     otherNotable: [],
     highestOdometer: null,
+    theftMentioned: null, // null | false | true
+    movedBranding: false,
   };
 
   if (!raw) return result;
@@ -32,8 +34,25 @@ export const extractReport = (raw) => {
     result.accidentsMentioned = true;
   }
 
-  const brandingMatches = raw.match(/\b(Normal|Salvage|Rebuilt|Rebuild|Non[- ]repairable|Stolen|Branded|Moved\s+branding)\b/gi);
-  if (brandingMatches) brandingMatches.forEach((b) => uniqPush(result.branding, b));
+  // Detect theft mentions with negation sensitivity
+  const theftNeg = /(no\s+theft|not\s+(?:actively\s+)?declared\s+stolen|not\s+stolen)/i.test(raw);
+  const theftPos = /\b(stolen|theft)\b/i.test(raw);
+  if (theftNeg) result.theftMentioned = false;
+  else if (theftPos) result.theftMentioned = true;
+
+  // Detect moved branding note
+  if (/moved\s+branding/i.test(raw)) {
+    result.movedBranding = true;
+    uniqPush(result.otherNotable, "Moved branding");
+  }
+
+  // Branding statuses: only collect when explicitly tied to the word "branding"
+  lines.forEach((line) => {
+    if (/branding/i.test(line)) {
+      const statuses = line.match(/\b(Normal|Salvage|Rebuilt|Rebuild|Non[- ]repairable)\b/gi);
+      if (statuses) statuses.forEach((s) => uniqPush(result.branding, s));
+    }
+  });
 
   lines.forEach((line) => {
     if (/registered|registration|province of|state of|following locations/i.test(line)) {
@@ -91,4 +110,3 @@ export const extractReport = (raw) => {
 
   return result;
 };
-
