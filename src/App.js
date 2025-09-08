@@ -667,8 +667,11 @@ function App() {
               {parsedReport.movedBranding && (
                 <Chip>Moved branding</Chip>
               )}
-              {parsedReport.recalls.length > 0 && (
-                <Chip warning>Recalls mentioned</Chip>
+              {parsedReport.recallsOpen === false && (
+                <Chip positive>No recalls reported</Chip>
+              )}
+              {parsedReport.recallsOpen === true && (
+                <Chip warning>Open recall mentioned</Chip>
               )}
             </Chips>
             {(parsedReport.damageRecords.length > 0 || parsedReport.registrations.length > 0 || parsedReport.serviceEvents.length > 0) && (

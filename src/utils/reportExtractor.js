@@ -12,6 +12,7 @@ export const extractReport = (raw) => {
     highestOdometer: null,
     theftMentioned: null, // null | false | true
     movedBranding: false,
+    recallsOpen: null, // null | false (none) | true (open/mentioned)
   };
 
   if (!raw) return result;
@@ -28,9 +29,12 @@ export const extractReport = (raw) => {
     if (!arr.includes(val)) arr.push(val);
   };
 
-  if (/(no\s+police[- ]reported\s+accidents|no\s+accidents\s+reported)/i.test(raw)) {
+  // Accident/damage detection (negation-aware)
+  const accidentNegRe = /no\s+(?:police[- ]reported\s+)?accidents?(?:\s+or\s+damage)?\s+reported/i;
+  const accidentPosRe = /\b(accident|collision|damage\s+record|reported\s+damage)\b/i;
+  if (lines.some((l) => accidentNegRe.test(l))) {
     result.accidentsMentioned = false;
-  } else if (/(accident|collision|damage\s+record)/i.test(raw)) {
+  } else if (lines.some((l) => accidentPosRe.test(l) && !/^no\b/i.test(l))) {
     result.accidentsMentioned = true;
   }
 
@@ -54,29 +58,49 @@ export const extractReport = (raw) => {
     }
   });
 
+  // Helper to skip generic lines not specific to vehicle events
+  const isGeneric = (s) => /vehicle history report|additional history|glossary|help center|about carfax|guaranteed|warranty|follow us|view terms|view cert/i.test(s);
+
   lines.forEach((line) => {
-    if (/registered|registration|province of|state of|following locations/i.test(line)) {
-      uniqPush(result.registrations, line);
+    if (isGeneric(line)) return;
+    if (/registered|registration\s+issued|province of|state of|first owner reported/i.test(line)) {
+      // Prefer lines that look like event records (often start with a date)
+      if (/\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\b/i.test(line) || /motor vehicle dept|registration/i.test(line)) {
+        uniqPush(result.registrations, line);
+      }
     }
   });
 
   const moneyRe = /\$\s?\d{1,3}(?:[,.]\d{3})*(?:\.\d{2})?/;
   const dateRe = /\b(\d{4}[-/ ]\d{1,2}[-/ ]\d{1,2}|\d{4}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s+\d{1,2}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}|\d{4}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*)\b/i;
   lines.forEach((line) => {
+    if (isGeneric(line)) return;
+    // Ignore explicit negatives
+    if (/no\s+(?:accidents?|damage)\s+reported/i.test(line)) return;
+    // Avoid picking up report price lines
+    if (/\$\s?\d+\.\d{2}.*vehicle\s+history\s+report/i.test(line)) return;
+
     if (/(other\s+damage\s+records|damage|glass\s+record|claim|estimate)/i.test(line)) {
       const amount = line.match(moneyRe);
       const date = line.match(dateRe);
-      result.damageRecords.push({
-        date: date ? date[0] : undefined,
-        amount: amount ? amount[0] : undefined,
-        details: line,
-      });
+      // Keep if there is either a date or an amount to avoid generic sentences
+      if (amount || date) {
+        result.damageRecords.push({
+          date: date ? date[0] : undefined,
+          amount: amount ? amount[0] : undefined,
+          details: line,
+        });
+      }
     }
   });
 
   lines.forEach((line) => {
-    if (/odometer|km\b|kilometers|miles|mi\b/i.test(line)) {
-      uniqPush(result.odometerEvents, line);
+    if (isGeneric(line)) return;
+    if (/odometer\s+reported|odometer\s+reading|\b(km|kilometers|miles|mi)\b/i.test(line)) {
+      // Prefer lines with dates or explicit odometer phrases
+      if (dateRe.test(line) || /odometer\s+reported/i.test(line)) {
+        uniqPush(result.odometerEvents, line);
+      }
     }
   });
   const odoNums = [];
@@ -91,14 +115,26 @@ export const extractReport = (raw) => {
   }
 
   lines.forEach((line) => {
-    if (/service|serviced|inspection|alignment|oil|tire|tyre|brake|washed|detailed|condition\s+and\s+pressure\s+checked/i.test(line)) {
-      uniqPush(result.serviceEvents, line);
+    if (isGeneric(line)) return;
+    if (/vehicle\s+serviced|service|serviced|inspection|alignment|oil|tire|tyre|brake|washed|detailed|undercoating|rustproof/i.test(line)) {
+      if (dateRe.test(line) || /vehicle\s+serviced/i.test(line)) {
+        uniqPush(result.serviceEvents, line);
+      }
     }
   });
 
   lines.forEach((line) => {
+    if (isGeneric(line)) return;
     if (/recall/i.test(line)) {
+      // Track raw lines
       uniqPush(result.recalls, line);
+      // Determine open/none status
+      if (/no\s+(?:open\s+)?recalls?\s+reported/i.test(line)) {
+        result.recallsOpen = false;
+      } else if (/(open\s+recall|recall\s+campaign|manufacturer\s+recall(?!\s+reported))/i.test(line)) {
+        // Be conservative: only mark true for explicit open recalls
+        if (result.recallsOpen !== false) result.recallsOpen = true;
+      }
     }
   });
 
